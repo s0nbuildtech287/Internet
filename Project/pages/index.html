@@ -116,13 +116,30 @@
             border: 1px solid var(--card-border);
             overflow-x: auto;
             max-width: calc(100% - 220px);
-            scrollbar-width: none; /* Hide scrollbar Firefox */
-            -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+            scrollbar-width: none; /* Hide by default Firefox */
+            -ms-overflow-style: none; /* Hide IE/Edge */
             -webkit-overflow-scrolling: touch;
         }
 
+        .nav-tabs:hover {
+            scrollbar-width: thin; /* Show thin scrollbar on Firefox hover */
+        }
+
         .nav-tabs::-webkit-scrollbar {
-            display: none; /* Hide scrollbar Chrome/Safari/Opera */
+            height: 5px; /* Thin premium scrollbar height */
+        }
+
+        .nav-tabs::-webkit-scrollbar-thumb {
+            background: transparent; /* Invisible by default */
+            border-radius: 10px;
+        }
+
+        .nav-tabs:hover::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15); /* Fades in on hover */
+        }
+
+        .nav-tabs::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.35); /* Brighter when hovered directly */
         }
 
         .tab-btn {
@@ -863,6 +880,53 @@
             color: #ffffff;
         }
 
+        /* --- Tab 8: TCP/UDP Socket Simulator --- */
+        .sk-pkt-element {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s linear;
+            pointer-events: none;
+        }
+        .sk-pkt-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+        }
+        .sk-pkt-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            padding: 1px 4px;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+        .sk-pkt-fadeout {
+            animation: sk-pkt-drop-anim 0.5s ease-out forwards;
+        }
+        @keyframes sk-pkt-drop-anim {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.2); opacity: 0; filter: blur(3px); }
+        }
+        .glitch-effect {
+            animation: sk-glitch 0.2s ease infinite;
+        }
+        @keyframes sk-glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
         .scan-table-container {
             max-height: 300px;
             overflow-y: auto;
@@ -1386,6 +1450,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                 Mô Hình OSI
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-socket')" id="btn-tab-socket">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"></path><path d="M18 8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"></path></svg>
+                TCP vs UDP (Lab)
+            </button>
         </div>
     </header>
 
@@ -1447,6 +1515,14 @@
             </div>
         </section>
 
+        <!-- ================= TAB 8: TCP VS UDP SOCKET LAB ================= -->
+        <section id="tab-socket" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab TCP vs UDP (Lab)...</p>
+            </div>
+        </section>
+
     </main>
 
     <footer>
@@ -1496,20 +1572,23 @@
                 drawDevices();
             } else if (tabId === 'tab-osi') {
                 drawOsiStack();
+            } else if (tabId === 'tab-socket') {
+                resetSkSimulation();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes, socketRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
                     fetch('/tab-playground.html'),
                     fetch('/tab-tools.html'),
                     fetch('/tab-topology.html'),
                     fetch('/tab-devices.html'),
-                    fetch('/tab-osi.html')
+                    fetch('/tab-osi.html'),
+                    fetch('/tab-socket.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
@@ -1519,6 +1598,7 @@
                 document.getElementById('tab-topology').innerHTML = await topologyRes.text();
                 document.getElementById('tab-devices').innerHTML = await devicesRes.text();
                 document.getElementById('tab-osi').innerHTML = await osiRes.text();
+                document.getElementById('tab-socket').innerHTML = await socketRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
@@ -1531,6 +1611,8 @@
                     drawDevices();
                 } else if (document.getElementById('tab-osi').classList.contains('active')) {
                     drawOsiStack();
+                } else if (document.getElementById('tab-socket').classList.contains('active')) {
+                    resetSkSimulation();
                 }
             } catch (err) {
                 console.error("Lỗi khi tải các tệp giao diện con:", err);
@@ -3547,6 +3629,276 @@
                 const bin = char.charCodeAt(0).toString(2);
                 return '0'.repeat(8 - bin.length) + bin;
             }).join('');
+        }
+
+        // ================= TAB 8: TCP VS UDP SOCKET LAB =================
+        let skState = 'idle'; // 'idle', 'handshaking', 'streaming', 'retransmitting', 'teardown', 'done'
+        let skProto = 'tcp';
+        let skPacketId = 0;
+        let skShouldDropNext = false;
+        
+        let skStats = {
+            sent: 0,
+            received: 0,
+            lost: 0,
+            latencySum: 0,
+            latencyCount: 0
+        };
+
+        function onSkProtoChange(value) {
+            skProto = value;
+            const desc = document.getElementById('sk-task-desc');
+            if (desc) {
+                if (skProto === 'tcp') {
+                    desc.value = "Tải File PDF tài liệu (Yêu cầu chính xác 100%)";
+                } else {
+                    desc.value = "Live Stream Video cuộc gọi (Yêu cầu tốc độ cao, bỏ qua lỗi)";
+                }
+            }
+            resetSkSimulation();
+        }
+
+        function resetSkSimulation() {
+            skState = 'idle';
+            skShouldDropNext = false;
+            skPacketId = 0;
+            skStats = { sent: 0, received: 0, lost: 0, latencySum: 0, latencyCount: 0 };
+            
+            const startBtn = document.getElementById('btn-sk-start');
+            const dropBtn = document.getElementById('btn-sk-drop');
+            if (startBtn) startBtn.disabled = false;
+            if (dropBtn) dropBtn.disabled = true;
+
+            updateSkStatsUI();
+            
+            const container = document.getElementById('sk-packet-container');
+            if (container) container.innerHTML = '';
+            
+            const consoleEl = document.getElementById('sk-console');
+            if (consoleEl) {
+                consoleEl.innerHTML = `Hệ thống đã reset. Thiết lập cấu hình và bấm "Bắt đầu Truyền Dữ Liệu".`;
+            }
+            
+            const rightPane = document.getElementById('tab-socket');
+            if (rightPane) rightPane.classList.remove('glitch-effect');
+        }
+
+        function triggerSkPacketDrop() {
+            skShouldDropNext = true;
+            const consoleEl = document.getElementById('sk-console');
+            if (consoleEl) {
+                consoleEl.innerHTML += `<br><span style="color:var(--error); font-weight:700;">[Hệ thống] Đang kích hoạt nhiễu sóng! Gói tin tiếp theo sẽ bị mất trên đường truyền...</span>`;
+            }
+        }
+
+        function updateSkStatsUI() {
+            const statsPkts = document.getElementById('sk-stats-pkts');
+            const statsRate = document.getElementById('sk-stats-rate');
+            const statsIntegrity = document.getElementById('sk-stats-integrity');
+            const statsLatency = document.getElementById('sk-stats-latency');
+            
+            if (!statsPkts) return;
+
+            statsPkts.innerText = `${skStats.sent} / ${skStats.received}`;
+            
+            let rate = 0;
+            if (skStats.sent > 0) {
+                rate = Math.round((skStats.received / skStats.sent) * 100);
+            }
+            statsRate.innerText = `${rate}%`;
+            
+            if (skProto === 'tcp') {
+                if (skStats.received === 0) {
+                    statsIntegrity.innerText = "Chưa truyền";
+                    statsIntegrity.style.color = "inherit";
+                } else if (skStats.lost > 0) {
+                    statsIntegrity.innerText = "100% OK (Đã khôi phục)";
+                    statsIntegrity.style.color = "var(--success)";
+                } else {
+                    statsIntegrity.innerText = "100% Nguyên vẹn";
+                    statsIntegrity.style.color = "var(--success)";
+                }
+            } else {
+                if (skStats.received === 0) {
+                    statsIntegrity.innerText = "Chưa truyền";
+                    statsIntegrity.style.color = "inherit";
+                } else if (skStats.lost > 0) {
+                    statsIntegrity.innerText = `Mất ${skStats.lost} block dữ liệu!`;
+                    statsIntegrity.style.color = "var(--error)";
+                } else {
+                    statsIntegrity.innerText = "Tốt (Không mất block)";
+                    statsIntegrity.style.color = "var(--success)";
+                }
+            }
+
+            if (skStats.latencyCount > 0) {
+                const avg = Math.round(skStats.latencySum / skStats.latencyCount);
+                statsLatency.innerText = `${avg} ms`;
+            } else {
+                statsLatency.innerText = "-- ms";
+            }
+        }
+
+        async function startSocketStream() {
+            skState = 'handshaking';
+            const startBtn = document.getElementById('btn-sk-start');
+            const dropBtn = document.getElementById('btn-sk-drop');
+            if (startBtn) startBtn.disabled = true;
+            if (dropBtn) dropBtn.disabled = false;
+            
+            const consoleEl = document.getElementById('sk-console');
+            
+            if (skProto === 'tcp') {
+                consoleEl.innerHTML = `<strong>[TCP Handshake]</strong> Client gửi gói <strong>SYN</strong> để yêu cầu kết nối...`;
+                await animateSkPacket('SYN', '#06b6d4', 'left-to-right');
+                
+                consoleEl.innerHTML += `<br><strong>[TCP Handshake]</strong> Server phản hồi <strong>SYN-ACK</strong> để xác nhận và mở cổng...`;
+                await animateSkPacket('SYN-ACK', '#06b6d4', 'right-to-left');
+
+                consoleEl.innerHTML += `<br><strong>[TCP Handshake]</strong> Client gửi gói <strong>ACK</strong> hoàn tất bắt tay 3 bước. Kết nối ESTABLISHED!`;
+                await animateSkPacket('ACK', '#06b6d4', 'left-to-right');
+                await sleep(1000);
+                
+                skState = 'streaming';
+                consoleEl.innerHTML = `🏁 Bắt đầu truyền dữ liệu tài liệu PDF (3 Segments)...`;
+                
+                let segments = [
+                    { name: 'Seg 1 (Seq: 101)', size: 100 },
+                    { name: 'Seg 2 (Seq: 201)', size: 100 },
+                    { name: 'Seg 3 (Seq: 301)', size: 100 }
+                ];
+                
+                for (let i = 0; i < segments.length; i++) {
+                    let seg = segments[i];
+                    consoleEl.innerHTML += `<br>➔ Gửi <strong>${seg.name}</strong>...`;
+                    skStats.sent++;
+                    updateSkStatsUI();
+
+                    let success = await animateSkPacket(seg.name, '#10b981', 'left-to-right', true);
+                    if (success) {
+                        skStats.received++;
+                        skStats.latencySum += 12;
+                        skStats.latencyCount++;
+                        updateSkStatsUI();
+                        
+                        consoleEl.innerHTML += ` Received! Phản hồi <strong>ACK (Next Seq)</strong>...`;
+                        await animateSkPacket('ACK', '#3b82f6', 'right-to-left');
+                    } else {
+                        skStats.lost++;
+                        updateSkStatsUI();
+                        consoleEl.innerHTML += `<br><span style="color:var(--error); font-weight:700;">⚠️ Lỗi! Mất gói ${seg.name}! RTO Timer running...</span>`;
+                        await sleep(2000);
+                        
+                        let retransmitted = false;
+                        while (!retransmitted) {
+                            consoleEl.innerHTML += `<br><span style="color:var(--warning); font-weight:700;">🔄 [Retransmission] Hết hạn RTO! Đang truyền lại gói ${seg.name}...</span>`;
+                            skStats.sent++;
+                            updateSkStatsUI();
+                            
+                            skShouldDropNext = false;
+                            let res = await animateSkPacket(seg.name, '#10b981', 'left-to-right', false);
+                            if (res) {
+                                skStats.received++;
+                                skStats.latencySum += 150;
+                                skStats.latencyCount++;
+                                updateSkStatsUI();
+                                
+                                consoleEl.innerHTML += ` Done! Server phản hồi <strong>ACK</strong>...`;
+                                await animateSkPacket('ACK', '#3b82f6', 'right-to-left');
+                                retransmitted = true;
+                            }
+                        }
+                    }
+                    await sleep(1000);
+                }
+
+                skState = 'teardown';
+                consoleEl.innerHTML += `<br><strong>[TCP Teardown]</strong> Hoàn tất truyền dữ liệu. Đóng cổng: Client gửi gói <strong>FIN</strong>...`;
+                await animateSkPacket('FIN', '#06b6d4', 'left-to-right');
+                consoleEl.innerHTML += `<br><strong>[TCP Teardown]</strong> Server phản hồi <strong>ACK-FIN</strong> kết thúc phiên. Kết nối đóng thành công.`;
+                await animateSkPacket('ACK-FIN', '#06b6d4', 'right-to-left');
+                
+            } else {
+                skState = 'streaming';
+                consoleEl.innerHTML = `🏁 [UDP Stream] Khởi động Live Video Streaming. Gửi 6 Datagrams tốc độ cao, không bắt tay...`;
+                await sleep(800);
+                
+                for (let i = 1; i <= 6; i++) {
+                    let name = `Pkt ${i}`;
+                    consoleEl.innerHTML += `<br>➔ Gửi <strong>${name}</strong>...`;
+                    skStats.sent++;
+                    updateSkStatsUI();
+                    
+                    let success = await animateSkPacket(name, '#f59e0b', 'left-to-right', true);
+                    if (success) {
+                        skStats.received++;
+                        skStats.latencySum += 5;
+                        skStats.latencyCount++;
+                        updateSkStatsUI();
+                    } else {
+                        skStats.lost++;
+                        updateSkStatsUI();
+                        consoleEl.innerHTML += ` <span style="color:var(--error); font-weight:700;">[Mất gói!]</span> Server bỏ qua, tiếp tục truyền Datagram tiếp theo...`;
+                        
+                        const socketTab = document.getElementById('tab-socket');
+                        if (socketTab) {
+                            socketTab.classList.add('glitch-effect');
+                            setTimeout(() => socketTab.classList.remove('glitch-effect'), 400);
+                        }
+                    }
+                    await sleep(600);
+                }
+            }
+
+            skState = 'done';
+            if (dropBtn) dropBtn.disabled = true;
+            consoleEl.innerHTML += `<br><span style="color:var(--success); font-weight:700; font-size:12px;">✔️ Truyền tải hoàn tất! Hãy xem bảng thống kê để so sánh kết quả.</span>`;
+        }
+
+        function animateSkPacket(label, color, direction, allowsDrop = false) {
+            return new Promise((resolve) => {
+                const container = document.getElementById('sk-packet-container');
+                if (!container) {
+                    resolve(true);
+                    return;
+                }
+
+                const el = document.createElement('div');
+                el.className = 'sk-pkt-element';
+                el.innerHTML = `
+                    <div class="sk-pkt-dot" style="color: ${color}; background: ${color};"></div>
+                    <div class="sk-pkt-label">${label}</div>
+                `;
+                container.appendChild(el);
+
+                const startX = direction === 'left-to-right' ? 120 : 520;
+                const endX = direction === 'left-to-right' ? 520 : 120;
+                
+                el.style.left = `${startX}px`;
+                el.style.top = `135px`;
+
+                setTimeout(() => {
+                    if (allowsDrop && skShouldDropNext && direction === 'left-to-right') {
+                        const midX = startX + (endX - startX) / 2;
+                        el.style.left = `${midX}px`;
+                        
+                        setTimeout(() => {
+                            el.classList.add('sk-pkt-fadeout');
+                            skShouldDropNext = false;
+                            setTimeout(() => {
+                                el.remove();
+                                resolve(false);
+                            }, 500);
+                        }, 250);
+                    } else {
+                        el.style.left = `${endX}px`;
+                        setTimeout(() => {
+                            el.remove();
+                            resolve(true);
+                        }, 500);
+                    }
+                }, 50);
+            });
         }
 
         function sleep(ms) {

@@ -1,0 +1,97 @@
+<p class="section-desc">Phòng thí nghiệm TCP vs UDP: So sánh trực quan cơ chế truyền tải tin cậy của TCP (có bắt tay 3 bước, ACK phản hồi, truyền lại khi mất gói) và UDP (không bắt tay, truyền nhanh liên tục, chấp nhận mất mát gói tin).</p>
+
+<div class="playground-layout" style="grid-template-columns: 340px 1fr; gap: 24px; display: grid;">
+    <!-- Left Column: Controls & Stats -->
+    <div class="pg-control-panel" style="gap: 16px; display: flex; flex-direction: column;">
+        <!-- Control Card -->
+        <div class="pg-panel">
+            <div class="panel-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"></path></svg>
+                Cấu Hình Socket
+            </div>
+            
+            <div class="input-group">
+                <label>Giao thức (Transport Layer)</label>
+                <select id="sk-proto-select" class="input-control" onchange="onSkProtoChange(this.value)" style="background: #1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius: 6px; padding: 8px;">
+                    <option value="tcp">TCP (Tin Cậy, Có Kết Nối)</option>
+                    <option value="udp">UDP (Nhanh, Không Kết Nối)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Nhiệm vụ giả lập</label>
+                <input type="text" id="sk-task-desc" class="input-control" value="Tải File PDF tài liệu (Yêu cầu chính xác 100%)" readonly style="background: rgba(255,255,255,0.03); color:#9ca3af; border:1px solid rgba(255,255,255,0.05); width:100%; border-radius:6px; padding:8px;" />
+            </div>
+
+            <div class="row-btn" style="margin-top: 10px;">
+                <button class="btn" id="btn-sk-start" onclick="startSocketStream()">Bắt đầu Truyền</button>
+                <button class="btn btn-danger" id="btn-sk-drop" onclick="triggerSkPacketDrop()" disabled style="flex:1;">Gây Mất Gói</button>
+                <button class="btn btn-outline" onclick="resetSkSimulation()" style="padding: 10px 14px;">Reset</button>
+            </div>
+        </div>
+
+        <!-- Performance Stats Card -->
+        <div class="pg-panel">
+            <div class="panel-heading" style="color:var(--accent);">
+                📊 Thống kê Đường truyền
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:6px;">
+                    <span style="color:var(--text-muted);">Gói gửi / Gói nhận:</span>
+                    <strong id="sk-stats-pkts">0 / 0</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:6px;">
+                    <span style="color:var(--text-muted);">Tỷ lệ nhận tin:</span>
+                    <strong id="sk-stats-rate" style="color:var(--success);">0%</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:6px;">
+                    <span style="color:var(--text-muted);">Tính toàn vẹn (Integrity):</span>
+                    <strong id="sk-stats-integrity">Chưa truyền</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="color:var(--text-muted);">Độ trễ trung bình:</span>
+                    <strong id="sk-stats-latency">-- ms</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Animation Canvas & Live Terminal -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Canvas representation -->
+        <div class="card" style="background:#0b111e; border:1px solid rgba(255,255,255,0.03); padding:20px; height:320px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between;">
+            <!-- Client PC -->
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px; z-index:2;">
+                <div class="device-icon" style="background:var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                </div>
+                <div style="font-size:12px; font-weight:700;">Client (Gửi)</div>
+                <div id="sk-client-port" style="font-size:10px; font-family:monospace; color:var(--text-muted);">Port: 54321</div>
+            </div>
+
+            <!-- SVG Cable path -->
+            <div style="position:absolute; left:0; right:0; top:0; bottom:0; pointer-events:none; z-index:1;">
+                <svg width="100%" height="100%">
+                    <path id="sk-cable-path" d="M 120 150 L 520 150" stroke="rgba(255,255,255,0.05)" stroke-width="4" fill="none"></path>
+                </svg>
+                <!-- Flying packet dots generated dynamically -->
+                <div id="sk-packet-container" style="position:absolute; top:0; left:0; right:0; bottom:0;"></div>
+            </div>
+
+            <!-- Server PC -->
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px; z-index:2;">
+                <div class="device-icon" style="background:var(--accent); box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                </div>
+                <div style="font-size:12px; font-weight:700;">Server (Nhận)</div>
+                <div id="sk-server-port" style="font-size:10px; font-family:monospace; color:var(--text-muted);">Port: 80 (HTTP)</div>
+            </div>
+        </div>
+
+        <!-- Real-Time Event Console -->
+        <div class="card" style="background:#0b111e; border:1px solid rgba(255,255,255,0.03); padding:16px;">
+            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; font-weight:700;">Nhật ký sự kiện Socket (Socket Layer Tracing):</div>
+            <div id="sk-console" style="background:#090d16; border-radius: 6px; font-family:'JetBrains Mono',monospace; font-size:11px; padding: 12px; color:#a3b8cc; height:130px; overflow-y:auto; line-height:1.5;">Hệ thống đã sẵn sàng. Hãy bấm "Bắt đầu Truyền" để theo dõi các gói tin Transport Layer.</div>
+        </div>
+    </div>
+</div>
