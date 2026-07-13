@@ -1,0 +1,16 @@
+p class="section-desc">Đo lường thời gian trễ (RTT - Round Trip Time) tới các máy chủ nổi tiếng trên thế giới qua kết nối TCP Socket thực tế.</p>
+
+<div class="card">
+    <div class="ping-controls">
+        <div style="font-size: 15px; color: var(--text-muted);">
+            Độ trễ được tính bằng mili-giây (ms). Độ trễ càng thấp, kết nối mạng càng mượt mà.
+        </div>
+        <button class="btn" id="btn-ping-all" onclick="pingAllServers()">
+            <span>Kiểm tra độ trễ</span>
+        </button>
+    </div>
+    
+    <div class="ping-list" id="ping-list-container">
+        <!-- Standard server rows -->
+    </div>
+</div>

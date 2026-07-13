@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Lab & TCP Playground - Học Mạng Trực Quan</title>
+    <meta name="description" content="Học tập và trực quan hóa giao thức mạng TCP, Socket, Địa chỉ IP, Port và Ping thông qua ứng dụng thực hành thực tế.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(17, 24, 39, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        header {
+            padding: 24px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(31, 41, 55, 0.5);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            background: var(--primary);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        main {
+            flex: 1;
+            padding: 32px 8%;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Components & Layouts --- */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--error);
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-error { background: rgba(239, 68, 68, 0.15); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* --- Tab 1: Local Network Overview --- */
+        .network-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .net-stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .net-stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .net-stat-val {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: #ffffff;
+            word-break: break-all;
+        }
+
+        /* Connection Map Diagram */
+        .network-map {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            position: relative;
+        }
+
+        .map-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
+            z-index: 2;
+            width: 100px;
+        }
+
+        .node-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(31, 41, 55, 0.8);
+            border: 2px solid var(--card-border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .map-node.active .node-icon {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .map-node.active-success .node-icon {
+            border-color: var(--success);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .node-label {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .node-ip {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+        }
+
+        .map-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(to right, var(--success), var(--primary));
+            top: 60px;
+            left: 120px;
+            right: 120px;
+            z-index: 1;
+            opacity: 0.6;
+        }
+
+        .scan-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .td-ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        /* --- Tab 2: Global Servers Ping --- */
+        .ping-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .ping-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .ping-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .ping-row:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .srv-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .srv-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(31, 41, 55, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .srv-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .srv-host {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 2px;
+        }
+
+        .srv-latency {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .latency-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 16px;
+            width: 70px;
+            text-align: right;
+        }
+
+        .latency-bar-container {
+            width: 100px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .latency-bar {
+            height: 100%;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+
+        /* --- Tab 3: TCP Socket Playground --- */
+        .playground-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .playground-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pg-control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pg-panel {
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .panel-heading {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .input-control {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-control:focus {
+            border-color: var(--primary);
+        }
+
+        .row-btn {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        /* Socket Interactive Flow Visualizer */
+        .visualizer-card {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .visual-display {
+            height: 250px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .socket-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .sock-box {
+            width: 90px;
+            height: 90px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 3px solid var(--card-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .sock-box svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 4px;
+            transition: transform 0.3s ease;
+        }
+
+        .sock-box.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .sock-box.server-active {
+            border-color: var(--accent);
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .sock-label {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .sock-status {
+            font-size: 10px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .visual-wire {
+            position: absolute;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            left: 170px;
+            right: 170px;
+            top: 118px;
+            z-index: 1;
+            border-radius: 2px;
+            overflow: visible;
+        }
+
+        .visual-wire.connected {
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Packet Animation */
+        .packet-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ffffff;
+            position: absolute;
+            top: -5px;
+            display: none;
+            z-index: 5;
+            box-shadow: 0 0 10px #ffffff;
+        }
+
+        .packet-dot.c-to-s {
+            background: var(--primary);
+            box-shadow: 0 0 12px var(--primary);
+            animation: moveRight 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .packet-dot.s-to-c {
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            animation: moveLeft 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes moveRight {
+            0% { left: 0%; display: block; opacity: 1; }
+            95% { opacity: 1; }
+            100% { left: 100%; display: none; opacity: 0; }
+        }
+
+        @keyframes moveLeft {
+            0% { left: 100%; display: block; opacity: 1; }
+            95% { opacity: 1; }
+            100% { left: 0%; display: none; opacity: 0; }
+        }
+
+        .packet-label {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            top: -35px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            display: none;
+            z-index: 6;
+        }
+
+        .packet-dot.c-to-s ~ .packet-label {
+            display: block;
+            animation: labelRight 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .packet-dot.s-to-c ~ .packet-label {
+            display: block;
+            animation: labelLeft 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes labelRight {
+            0% { left: 0%; opacity: 1; }
+            95% { opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+        }
+
+        @keyframes labelLeft {
+            0% { left: 100%; opacity: 1; }
+            95% { opacity: 1; }
+            100% { left: 0%; opacity: 0; }
+        }
+
+        /* Playground Logs Console */
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .terminal-body {
+            height: 250px;
+            background: #05070c;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .log-line {
+            display: grid;
+            grid-template-columns: 80px 100px 1fr;
+            line-height: 1.5;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .log-time {
+            color: var(--text-muted);
+        }
+
+        .log-type {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .log-msg {
+            color: #ffffff;
+        }
+
+        .log-details {
+            grid-column: 3;
+            color: var(--text-muted);
+            font-size: 11.5px;
+            margin-top: 2px;
+        }
+
+        .log-success .log-type { color: var(--success); }
+        .log-error .log-type { color: var(--error); }
+        .log-info .log-type { color: var(--primary); }
+        .log-handshake .log-type { color: var(--warning); }
+        .log-data_sent .log-type { color: var(--accent); }
+        .log-data_recv .log-type { color: #f43f5e; }
+
+        /* General layout helpers */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .section-desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+            margin-top: -10px;
+        }
+
+        footer {
+            padding: 30px 8%;
+            border-top: 1px solid var(--card-border);
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: auto;
+            backdrop-filter: blur(8px);
+        }
+
+        footer p a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        footer p a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 15V9C4 7.89543 4.89543 7 6 7H18C19.1046 7 20 7.89543 20 9V15M4 15C4 16.1046 4.89543 17 6 17H18C19.1046 17 20 16.1046 20 15M4 15V19M20 15V19M12 7V3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="8" cy="12" r="1" fill="white"/>
+                    <circle cx="12" cy="12" r="1" fill="white"/>
+                    <circle cx="16" cy="12" r="1" fill="white"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>Internet Lab</h1>
+                <p>Visual Network Learning Dashboard</p>
+            </div>
+        </div>
+        
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-local')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                IP Nhà & LAN
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-global')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                Máy Chủ Thế Giới
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-playground')" id="btn-tab-playground">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                TCP Socket Playground
+            </button>
+        </div>
+    </header>
+
+    <main>
+        
+        <!-- ================= TAB 1: LOCAL NETWORK ================= -->
+        <section id="tab-local" class="tab-content active">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab IP Nhà & LAN...</p>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: GLOBAL SERVERS ================= -->
+        <section id="tab-global" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Máy Chủ Thế Giới...</p>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: TCP PLAYGROUND ================= -->
+        <section id="tab-playground" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab TCP Socket Playground...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Internet Lab - Visualizer cho Bài 1 của Khóa Học Mạng Máy Tính | <a href="#btn-tab-playground" onclick="switchTab('tab-playground')">Chạy Socket thực tế</a></p>
+    </footer>
+
+    <script>
+        // Init global server lists
+        const serversList = [
+            {"name": "Google DNS", "host": "8.8.8.8", "port": 53},
+            {"name": "Cloudflare DNS", "host": "1.1.1.1", "port": 53},
+            {"name": "Google Vietnam", "host": "google.com.vn", "port": 80},
+            {"name": "GitHub (USA)", "host": "github.com", "port": 443},
+            {"name": "Facebook", "host": "facebook.com", "port": 443},
+            {"name": "YouTube", "host": "youtube.com", "port": 443},
+            {"name": "Wikipedia", "host": "wikipedia.org", "port": 443}
+        ];
+
+        // State trackers
+        let pollingInterval = null;
+        let lastLogCount = 0;
+
+        // Switch Tabs
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            
+            // Highlight nav button
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.getAttribute('onclick').includes(tabId));
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Trigger updates if we switch to specific tabs
+            if (tabId === 'tab-local') {
+                loadNetworkInfo();
+            } else if (tabId === 'tab-global') {
+                renderServersList();
+            } else if (tabId === 'tab-playground') {
+                startPollingStatus();
+            }
+        }
+
+        // Load HTML templates for each tab from separate files
+        async function loadTabTemplates() {
+            try {
+                const [localRes, globalRes, pgRes] = await Promise.all([
+                    fetch('/tab-local.html'),
+                    fetch('/tab-global.html'),
+                    fetch('/tab-playground.html')
+                ]);
+
+                document.getElementById('tab-local').innerHTML = await localRes.text();
+                document.getElementById('tab-global').innerHTML = await globalRes.text();
+                document.getElementById('tab-playground').innerHTML = await pgRes.text();
+
+                // Once loaded, trigger initial actions
+                await loadNetworkInfo();
+                renderServersList();
+                startPollingStatus();
+            } catch (err) {
+                console.error("Lỗi khi tải các tệp giao diện con:", err);
+                document.querySelectorAll('.tab-content').forEach(el => {
+                    el.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--error);">Lỗi kết nối tới Web Server để tải giao diện. Hãy chắc chắn backend index.py đang chạy!</div>`;
+                });
+            }
+        }
+
+        // On Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTabTemplates();
+        });
+
+        // Tab 1: Load Network Info
+        async function loadNetworkInfo() {
+            try {
+                const response = await fetch('/api/network');
+                const data = await response.json();
+                
+                document.getElementById('local-hostname').textContent = data.hostname;
+                
+                // Show LAN address
+                const lanIp = data.local_ips.find(i => i.ip !== '127.0.0.1') || data.local_ips[0];
+                document.getElementById('local-ip').textContent = lanIp ? lanIp.ip : '127.0.0.1';
+                document.getElementById('node-pc-ip').textContent = lanIp ? lanIp.ip : '127.0.0.1';
+                
+                // Show Public IP
+                document.getElementById('public-ip').textContent = data.public_info.ip;
+                document.getElementById('node-internet-ip').textContent = data.public_info.ip;
+                
+                // Show ISP
+                document.getElementById('net-isp').textContent = data.public_info.isp;
+                
+                // Draw router ip logically
+                const ipParts = (lanIp ? lanIp.ip : '192.168.1.10').split('.');
+                if(ipParts.length === 4) {
+                    const routerIp = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.1`;
+                    document.getElementById('node-router-ip').textContent = routerIp;
+                }
+            } catch (err) {
+                console.error("Lỗi khi lấy thông tin mạng:", err);
+            }
+        }
+
+        // Scan Local Network
+        async function scanLAN() {
+            const btn = document.getElementById('btn-scan');
+            const tbody = document.getElementById('scan-tbody');
+            
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Đang Quét...`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        <span class="spinner" style="width:24px; height:24px; margin-bottom:10px;"></span><br>
+                        Đang quét 254 địa chỉ IP trong mạng nhà bạn. Vui lòng đợi 2-3 giây...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const response = await fetch('/api/local-scan');
+                const data = await response.json();
+                
+                if (data.devices.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--warning); padding: 30px 0;">
+                                Không tìm thấy thiết bị nào phản hồi.
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = '';
+                    data.devices.forEach(device => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="td-ip">${device.ip}</td>
+                                <td>${device.name}</td>
+                                <td><span class="badge badge-success">${device.status}</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--error); padding: 30px 0;">
+                            Lỗi hệ thống khi quét cổng. Hãy thử tải lại trang hoặc khởi động lại backend.
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Quét ngay';
+            }
+        }
+
+        // Scan WiFi Networks
+        async function scanWiFi() {
+            const btn = document.getElementById('btn-scan-wifi');
+            const tbody = document.getElementById('wifi-tbody');
+            
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Đang Quét Sóng...`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        <span class="spinner" style="width:24px; height:24px; margin-bottom:10px;"></span><br>
+                        Đang quét các tín hiệu mạng WiFi xung quanh thông qua bộ thu sóng không dây của máy...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const response = await fetch('/api/wifi-scan');
+                const data = await response.json();
+                
+                if (data.status === 'error') {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--error); padding: 30px 0;">
+                                ${data.message}
+                            </td>
+                        </tr>
+                    `;
+                } else if (!data.networks || data.networks.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--warning); padding: 30px 0;">
+                                Không phát hiện tín hiệu WiFi nào xung quanh. Thiết bị thu sóng không dây (Card Wifi) của bạn có thể đang tắt hoặc không hỗ trợ lệnh quét.
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = '';
+                    data.networks.forEach(net => {
+                        let pct = parseInt(net.signal.replace('%',''));
+                        let color = 'var(--error)';
+                        if (pct > 75) color = 'var(--success)';
+                        else if (pct > 40) color = 'var(--warning)';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="font-weight:600; color: #ffffff;">${escapeHtml(net.ssid)}</td>
+                                <td class="td-ip">${net.bssid}</td>
+                                <td>
+                                    <span style="font-weight:700; color: ${color}">
+                                        ${net.signal}
+                                    </span>
+                                </td>
+                                <td>${net.channel}</td>
+                                <td><span class="badge ${net.auth.includes('Open') ? 'badge-warning' : 'badge-success'}">${net.auth}</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--error); padding: 30px 0;">
+                            Lỗi kết nối tới Server. Hãy đảm bảo index.py đang chạy trên máy Windows.
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Quét sóng WiFi';
+            }
+        }
+
+        // Tab 2: Render & Ping world servers
+        function renderServersList() {
+            const container = document.getElementById('ping-list-container');
+            if (!container) return; // Tab might not be loaded yet
+            container.innerHTML = '';
+            
+            serversList.forEach((srv, index) => {
+                container.innerHTML += `
+                    <div class="ping-row" id="ping-row-${index}">
+                        <div class="srv-info">
+                            <div class="srv-avatar">${srv.name[0]}</div>
+                            <div>
+                                <div class="srv-name">${srv.name}</div>
+                                <div class="srv-host">${srv.host}:${srv.port} | IP: <span id="srv-ip-${index}">Chưa xác định</span></div>
+                            </div>
+                        </div>
+                        <div class="srv-latency">
+                            <span class="badge badge-warning" id="srv-status-${index}">CHƯA TEST</span>
+                            <div class="latency-val" id="srv-latency-${index}">-- ms</div>
+                            <div class="latency-bar-container">
+                                <div class="latency-bar" id="srv-bar-${index}" style="background:var(--primary); width:0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function pingAllServers() {
+            const btn = document.getElementById('btn-ping-all');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Đang đo RTT...`;
+
+            // Reset UI bars
+            serversList.forEach((srv, index) => {
+                document.getElementById(`srv-status-${index}`).className = "badge badge-warning";
+                document.getElementById(`srv-status-${index}`).textContent = "ĐANG PING...";
+                document.getElementById(`srv-latency-${index}`).textContent = "-- ms";
+                document.getElementById(`srv-bar-${index}`).style.width = "0%";
+            });
+
+            try {
+                const response = await fetch('/api/ping-all');
+                const results = await response.json();
+                
+                results.forEach(res => {
+                    const index = serversList.findIndex(s => s.name === res.name);
+                    if (index !== -1) {
+                        const statusBadge = document.getElementById(`srv-status-${index}`);
+                        const latencyText = document.getElementById(`srv-latency-${index}`);
+                        const bar = document.getElementById(`srv-bar-${index}`);
+                        document.getElementById(`srv-ip-${index}`).textContent = res.ip;
+
+                        if (res.status === 'Online') {
+                            latencyText.textContent = `${res.rtt} ms`;
+                            
+                            // Color code latency
+                            let color = 'var(--success)';
+                            let pct = Math.min(100, Math.max(5, (res.rtt / 300) * 100)); // normalized up to 300ms
+                            
+                            if (res.rtt > 180) {
+                                color = 'var(--error)';
+                                statusBadge.className = "badge badge-error";
+                                statusBadge.textContent = "CHẬM";
+                            } else if (res.rtt > 80) {
+                                color = 'var(--warning)';
+                                statusBadge.className = "badge badge-warning";
+                                statusBadge.textContent = "TRUNG BÌNH";
+                            } else {
+                                statusBadge.className = "badge badge-success";
+                                statusBadge.textContent = "TỐT";
+                            }
+                            
+                            bar.style.backgroundColor = color;
+                            bar.style.width = `${pct}%`;
+                        } else {
+                            statusBadge.className = "badge badge-error";
+                            statusBadge.textContent = res.status;
+                            latencyText.textContent = "OFFLINE";
+                            bar.style.width = "0%";
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Kiểm tra độ trễ';
+            }
+        }
+
+        // ================= TAB 3: TCP SOCKET PLAYGROUND =================
+        
+        // Start long polling socket state & logs
+        function startPollingStatus() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollBackend();
+            pollingInterval = setInterval(pollBackend, 500);
+        }
+
+        async function pollBackend() {
+            try {
+                // Check if element is loaded
+                if (!document.getElementById('node-visual-server')) return;
+
+                // Poll status
+                const resStatus = await fetch('/api/socket/status');
+                const status = await resStatus.json();
+                updateVisualStatus(status);
+
+                // Poll logs
+                const resLogs = await fetch('/api/socket/logs');
+                const logs = await resLogs.json();
+                updateLogsTerminal(logs);
+            } catch (err) {
+                console.error("Lỗi polling backend:", err);
+            }
+        }
+
+        // Update Socket Nodes Visualizer States
+        function updateVisualStatus(status) {
+            const serverBox = document.getElementById('node-visual-server');
+            const serverStatus = document.getElementById('visual-server-status');
+            const clientBox = document.getElementById('node-visual-client');
+            const clientStatus = document.getElementById('visual-client-status');
+            const wire = document.getElementById('visual-wire');
+
+            if (!serverBox) return; // Playground not loaded yet
+
+            // Web inputs
+            const serverPortInput = document.getElementById('server-port');
+            const clientHostInput = document.getElementById('client-host');
+            const clientPortInput = document.getElementById('client-port');
+            const clientMsgInput = document.getElementById('client-msg');
+
+            const btnStartServer = document.getElementById('btn-start-server');
+            const btnStopServer = document.getElementById('btn-stop-server');
+            const btnConnectClient = document.getElementById('btn-connect-client');
+            const btnDisconnectClient = document.getElementById('btn-disconnect-client');
+            const btnSendMsg = document.getElementById('btn-send-msg');
+
+            // Server visual representation
+            if (status.server_running) {
+                serverBox.classList.add('server-active');
+                serverStatus.textContent = `LISTENING (${status.server_port})`;
+                serverStatus.style.color = 'var(--accent)';
+                
+                btnStartServer.disabled = true;
+                serverPortInput.disabled = true;
+                btnStopServer.disabled = false;
+            } else {
+                serverBox.classList.remove('server-active');
+                serverStatus.textContent = 'OFFLINE';
+                serverStatus.style.color = 'var(--text-muted)';
+                
+                btnStartServer.disabled = false;
+                serverPortInput.disabled = false;
+                btnStopServer.disabled = true;
+            }
+
+            // Client visual representation
+            if (status.client_connected) {
+                clientBox.classList.add('active');
+                clientStatus.textContent = 'CONNECTED';
+                clientStatus.style.color = 'var(--success)';
+                
+                btnConnectClient.disabled = true;
+                clientHostInput.disabled = true;
+                clientPortInput.disabled = true;
+                btnDisconnectClient.disabled = false;
+                
+                clientMsgInput.disabled = false;
+                btnSendMsg.disabled = false;
+
+                // Wire status
+                wire.classList.add('connected');
+            } else {
+                clientBox.classList.remove('active');
+                clientStatus.textContent = 'DISCONNECTED';
+                clientStatus.style.color = 'var(--text-muted)';
+                
+                btnConnectClient.disabled = false;
+                clientHostInput.disabled = false;
+                clientPortInput.disabled = false;
+                btnDisconnectClient.disabled = true;
+                
+                clientMsgInput.disabled = true;
+                btnSendMsg.disabled = true;
+
+                wire.classList.remove('connected');
+            }
+        }
+
+        // Render logs into terminal
+        function updateLogsTerminal(logs) {
+            const term = document.getElementById('terminal-output');
+            if (!term) return;
+
+            if (logs.length === 0) {
+                term.innerHTML = `<div style="color:var(--text-muted); text-align:center; margin-top:80px;">Chưa có hoạt động Socket nào...</div>`;
+                lastLogCount = 0;
+                return;
+            }
+
+            // If log count is the same, no update needed
+            if (logs.length === lastLogCount) return;
+
+            term.innerHTML = '';
+            logs.forEach(log => {
+                term.innerHTML += `
+                    <div class="log-line log-${log.type}">
+                        <span class="log-time">[${log.timestamp}]</span>
+                        <span class="log-type">${log.type}</span>
+                        <span class="log-msg">${escapeHtml(log.message)}</span>
+                        ${log.details ? `<span class="log-details">${escapeHtml(log.details)}</span>` : ''}
+                    </div>
+                `;
+            });
+
+            // Detect new logs to trigger packet animation in front-end
+            if (logs.length > lastLogCount) {
+                const newLogs = logs.slice(lastLogCount);
+                newLogs.forEach(newLog => {
+                    detectAndAnimatePacket(newLog);
+                });
+                // Auto scroll to bottom
+                term.scrollTop = term.scrollHeight;
+            }
+
+            lastLogCount = logs.length;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        // TCP Packet Animation Controller
+        function detectAndAnimatePacket(log) {
+            const dot = document.getElementById('packet-dot');
+            const label = document.getElementById('packet-label');
+
+            if (!dot || !label) return;
+
+            let direction = ''; // 'c-to-s' or 's-to-c'
+            let packetText = '';
+
+            // Handle SYN, SYN-ACK, ACK, DATA logs
+            if (log.message.includes("Client bắt đầu kết nối") || log.details.includes("SYN")) {
+                direction = 'c-to-s';
+                packetText = 'SYN (Gói tin kết nối)';
+            } else if (log.message.includes("yêu cầu kết nối") && log.details.includes("SYN-ACK")) {
+                direction = 's-to-c';
+                packetText = 'SYN-ACK (Phản hồi kết nối)';
+            } else if (log.message.includes("Client kết nối THÀNH CÔNG") || (log.message.includes("kết nối hoàn tất") && log.details.includes("ESTABLISHED"))) {
+                direction = 'c-to-s';
+                packetText = 'ACK (Xác nhận kết nối)';
+            } else if (log.type === 'data_sent' && log.message.includes("Client")) {
+                direction = 'c-to-s';
+                packetText = `DATA (Gửi: "${extractPayload(log.details)}")`;
+            } else if (log.type === 'data_sent' && log.message.includes("Server")) {
+                direction = 's-to-c';
+                packetText = `DATA (Phản hồi: "Hello Client...")`;
+            } else if (log.message.includes("FIN") || log.message.includes("đóng Socket")) {
+                if (log.message.includes("Client")) {
+                    direction = 'c-to-s';
+                    packetText = 'FIN (Đóng kết nối)';
+                } else {
+                    direction = 's-to-c';
+                    packetText = 'FIN (Đóng kết nối)';
+                }
+            }
+
+            if (direction && packetText) {
+                // Remove existing classes to reset animation
+                dot.className = 'packet-dot';
+                dot.style.display = 'none';
+                
+                // Force a reflow
+                void dot.offsetWidth;
+                
+                // Apply new class to trigger transition
+                label.textContent = packetText;
+                dot.classList.add(direction);
+                dot.style.display = 'block';
+
+                // Handle label alignment during animation
+                label.style.left = direction === 'c-to-s' ? '0%' : '100%';
+            }
+        }
+
+        function extractPayload(details) {
+            const match = details.match(/"([^"]+)"/);
+            return match ? match[1] : 'dữ liệu';
+        }
+
+        // --- HTTP APIs Triggers ---
+        async function startServer() {
+            const port = document.getElementById('server-port').value;
+            try {
+                const res = await fetch('/api/socket/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: parseInt(port) })
+                });
+                const data = await res.json();
+                if (data.status === 'error') alert(data.message);
+            } catch(e) { console.error(e); }
+        }
+
+        async function stopServer() {
+            try {
+                await fetch('/api/socket/stop', { method: 'POST' });
+            } catch(e) { console.error(e); }
+        }
+
+        async function connectClient() {
+            const host = document.getElementById('client-host').value;
+            const port = document.getElementById('client-port').value;
+            try {
+                const res = await fetch('/api/socket/connect-client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host: host, port: parseInt(port) })
+                });
+                const data = await res.json();
+                if (data.status === 'error') alert(data.message);
+            } catch(e) { console.error(e); }
+        }
+
+        async function disconnectClient() {
+            try {
+                await fetch('/api/socket/disconnect-client', { method: 'POST' });
+            } catch(e) { console.error(e); }
+        }
+
+        async function sendClientMessage() {
+            const msg = document.getElementById('client-msg').value;
+            if (!msg) return;
+            try {
+                const res = await fetch('/api/socket/send-client-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+                const data = await res.json();
+                if (data.status === 'error') alert(data.message);
+            } catch(e) { console.error(e); }
+        }
+
+        async function clearLogs() {
+            try {
+                await fetch('/api/socket/clear-logs', { method: 'POST' });
+            } catch(e) { console.error(e); }
+        }
+    </script>
+</body>
+</html>
