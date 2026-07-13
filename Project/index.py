@@ -7,6 +7,7 @@ import urllib.request
 import os
 import subprocess
 import re
+import uuid
 
 PORT = 8080
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages")
@@ -20,6 +21,13 @@ tcp_clients = {}  # client_address -> socket
 tcp_client_logs = []
 client_socket_instance = None  # The client socket we control via web page
 client_socket_thread = None
+
+# Global state for Traceroute simulation
+traceroute_running = False
+traceroute_hops = []
+traceroute_target = ""
+traceroute_process = None
+traceroute_thread = None
 
 lock = threading.Lock()
 
@@ -66,6 +74,51 @@ class NetworkUtility:
         if not ips:
             ips.append({"name": "Loopback", "ip": "127.0.0.1"})
         return ips
+
+    @staticmethod
+    def get_mac_address():
+        """Get host MAC address formatted as XX:XX:XX:XX:XX:XX"""
+        try:
+            node = uuid.getnode()
+            mac = ':'.join(['{:02x}'.format((node >> ele) & 0xff) for ele in range(0, 8*6, 8)][::-1])
+            return mac.upper()
+        except Exception:
+            return "00:00:00:00:00:00"
+
+    @staticmethod
+    def get_default_gateway():
+        """Get actual active default gateway IP using OS ipconfig or route command"""
+        try:
+            if os.name == 'nt':
+                out = subprocess.check_output("ipconfig", shell=True, text=True, errors='ignore')
+                gateways = re.findall(r'Default Gateway[\s\.]*:\s*([0-9\.]+)', out)
+                for gw in gateways:
+                    if gw.strip() and gw != "0.0.0.0":
+                        return gw
+            else:
+                out = subprocess.check_output("route -n", shell=True, text=True, errors='ignore')
+                for line in out.split('\n'):
+                    if line.startswith("0.0.0.0"):
+                        parts = line.split()
+                        if len(parts) > 1:
+                            return parts[1]
+        except Exception:
+            pass
+        return "192.168.1.1" # default fallback
+
+    @staticmethod
+    def get_local_ipv6():
+        """Get local IPv6 address"""
+        try:
+            hostname = socket.gethostname()
+            addr_infos = socket.getaddrinfo(hostname, None, socket.AF_INET6)
+            for info in addr_infos:
+                ip = info[4][0]
+                if ip != "::1" and not ip.startswith("fe80"):
+                    return ip
+        except Exception:
+            pass
+        return "Không hoạt động / Không hỗ trợ"
 
     @staticmethod
     def get_public_ip_info():
@@ -362,17 +415,85 @@ def close_client_socket():
         client_socket_instance = None
 
 
+def run_traceroute_thread(target):
+    global traceroute_hops, traceroute_running, traceroute_process, traceroute_target
+    traceroute_hops = []
+    traceroute_target = target
+    traceroute_running = True
+    
+    is_win = os.name == 'nt'
+    # Windows: tracert -d -h 15 target (max 15 hops, no DNS resolution for speed)
+    # Unix: traceroute -n -m 15 target
+    cmd = ["tracert", "-d", "-h", "15", target] if is_win else ["traceroute", "-n", "-m", "15", target]
+    
+    try:
+        # Use Popen to read line-by-line in real-time
+        traceroute_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            errors='ignore'
+        )
+        
+        for line in iter(traceroute_process.stdout.readline, ''):
+            if not traceroute_running:
+                break
+            line_str = line.strip()
+            if not line_str:
+                continue
+                
+            # Parse hop information
+            # Match number at start (hop index)
+            match = re.match(r'^\s*(\d+)\s+(.+)$', line_str)
+            if match:
+                hop_num = int(match.group(1))
+                hop_data = match.group(2)
+                
+                # Check for IP address
+                ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', hop_data)
+                ip = ip_match.group(1) if ip_match else "Request timed out."
+                
+                # Extract latencies (e.g. 5 ms)
+                rtts = re.findall(r'(\d+)\s*ms', hop_data)
+                avg_rtt = "--"
+                if rtts:
+                    avg_rtt = f"{round(sum(int(r) for r in rtts) / len(rtts))} ms"
+                elif "*" in hop_data:
+                    avg_rtt = "*"
+                    
+                traceroute_hops.append({
+                    "hop": hop_num,
+                    "ip": ip,
+                    "rtt": avg_rtt,
+                    "raw": line_str
+                })
+        
+        traceroute_process.stdout.close()
+        traceroute_process.wait()
+    except Exception as e:
+        traceroute_hops.append({
+            "hop": "ERR",
+            "ip": "Error occurred",
+            "rtt": "--",
+            "raw": str(e)
+        })
+    finally:
+        traceroute_running = False
+        traceroute_process = None
+
+
 # --- Web Server Handler ---
 class APIServerHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
     def end_headers(self):
-        # Prevent caching for APIs
-        if self.path.startswith('/api/'):
-            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Expires', '0')
+        # Prevent caching for all files and APIs to ensure hot reloads work instantly
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
         super().end_headers()
 
     def do_GET(self):
@@ -394,6 +515,8 @@ class APIServerHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response(self.handle_api_socket_status())
         elif self.path == "/api/socket/logs":
             self.send_json_response(self.handle_api_socket_logs())
+        elif self.path == "/api/traceroute/status":
+            self.send_json_response(self.handle_api_traceroute_status())
         else:
             # Fallback to serving static files from directory
             super().do_GET()
@@ -419,6 +542,12 @@ class APIServerHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response(self.handle_api_socket_disconnect_client())
         elif self.path == "/api/socket/clear-logs":
             self.send_json_response(self.handle_api_socket_clear_logs())
+        elif self.path == "/api/dns-lookup":
+            self.send_json_response(self.handle_api_dns_lookup(params))
+        elif self.path == "/api/traceroute/start":
+            self.send_json_response(self.handle_api_traceroute_start(params))
+        elif self.path == "/api/traceroute/stop":
+            self.send_json_response(self.handle_api_traceroute_stop())
         else:
             self.send_error(404, "API endpoint not found")
 
@@ -435,7 +564,10 @@ class APIServerHandler(http.server.SimpleHTTPRequestHandler):
         return {
             "local_ips": local_ips,
             "public_info": public_info,
-            "hostname": socket.gethostname()
+            "hostname": socket.gethostname(),
+            "mac_address": NetworkUtility.get_mac_address(),
+            "default_gateway": NetworkUtility.get_default_gateway(),
+            "local_ipv6": NetworkUtility.get_local_ipv6()
         }
 
     def handle_api_ping_all(self):
@@ -591,6 +723,77 @@ class APIServerHandler(http.server.SimpleHTTPRequestHandler):
         with lock:
             tcp_client_logs.clear()
         return {"status": "success", "message": "Đã xóa lịch sử log"}
+
+    def handle_api_dns_lookup(self, params):
+        domain = params.get("domain", "").strip()
+        if not domain:
+            return {"status": "error", "message": "Vui lòng nhập tên miền"}
+        try:
+            ipv4_list = []
+            ipv6_list = []
+            try:
+                addr_infos = socket.getaddrinfo(domain, None, socket.AF_INET)
+                ipv4_list = list(set([info[4][0] for info in addr_infos]))
+            except Exception:
+                pass
+            try:
+                addr_infos = socket.getaddrinfo(domain, None, socket.AF_INET6)
+                ipv6_list = list(set([info[4][0] for info in addr_infos]))
+            except Exception:
+                pass
+                
+            if not ipv4_list and not ipv6_list:
+                return {"status": "error", "message": f"Không thể phân giải tên miền: {domain}"}
+                
+            return {
+                "status": "success",
+                "domain": domain,
+                "ipv4": ipv4_list,
+                "ipv6": ipv6_list
+            }
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def handle_api_traceroute_start(self, params):
+        global traceroute_running, traceroute_thread, traceroute_target
+        target = params.get("target", "").strip()
+        if not target:
+            return {"status": "error", "message": "Vui lòng nhập địa chỉ IP hoặc tên miền"}
+            
+        # Clean target name (simple security sanitization)
+        target = re.sub(r'[^a-zA-Z0-9\.\-]', '', target)
+        if not target:
+            return {"status": "error", "message": "Địa chỉ không hợp lệ"}
+            
+        if traceroute_running:
+            return {"status": "error", "message": "Tiến trình Traceroute khác đang chạy"}
+            
+        traceroute_thread = threading.Thread(target=run_traceroute_thread, args=(target,))
+        traceroute_thread.daemon = True
+        traceroute_thread.start()
+        
+        return {"status": "success", "message": f"Bắt đầu traceroute tới {target}..."}
+
+    def handle_api_traceroute_status(self):
+        global traceroute_running, traceroute_hops, traceroute_target
+        return {
+            "running": traceroute_running,
+            "target": traceroute_target,
+            "hops": list(traceroute_hops)
+        }
+
+    def handle_api_traceroute_stop(self):
+        global traceroute_running, traceroute_process
+        if not traceroute_running:
+            return {"status": "error", "message": "Không có tiến trình traceroute nào đang chạy"}
+            
+        traceroute_running = False
+        if traceroute_process:
+            try:
+                traceroute_process.terminate()
+            except:
+                pass
+        return {"status": "success", "message": "Đã dừng tiến trình traceroute"}
 
 
 if __name__ == "__main__":

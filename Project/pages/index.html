@@ -361,6 +361,143 @@
             opacity: 0.6;
         }
 
+        /* --- Tab 4: DNS & WAN Route tools --- */
+        .dns-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .dns-flow-step {
+            flex: 1;
+            min-width: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .dns-flow-step.active {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.08);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+
+        .dns-flow-step .step-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dns-flow-step.active .step-num {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .dns-flow-step .step-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+
+        .dns-flow-step .step-desc {
+            font-size: 9.5px;
+            color: var(--text-muted);
+        }
+
+        .dns-flow-arrow {
+            color: var(--text-muted);
+            font-weight: 700;
+            user-select: none;
+        }
+
+        .tracert-nodes-container {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 8px;
+        }
+
+        .tracert-node {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px 16px;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tracert-hop-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tracert-node.timeout .tracert-hop-num {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .tracert-hop-ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #ffffff;
+            flex: 1;
+        }
+
+        .tracert-hop-rtt {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .tracert-node.timeout .tracert-hop-rtt {
+            color: var(--warning);
+        }
+
         .scan-table-container {
             max-height: 300px;
             overflow-y: auto;
@@ -868,6 +1005,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
                 TCP Socket Playground
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-tools')" id="btn-tab-tools">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                Công Cụ Mạng (DNS & Route WAN)
+            </button>
         </div>
     </header>
 
@@ -894,6 +1035,14 @@
             <div style="text-align: center; padding: 40px;">
                 <span class="spinner" style="width:24px; height:24px;"></span>
                 <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab TCP Socket Playground...</p>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: NETWORK TOOLS ================= -->
+        <section id="tab-tools" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Công Cụ Mạng...</p>
             </div>
         </section>
 
@@ -937,21 +1086,26 @@
                 renderServersList();
             } else if (tabId === 'tab-playground') {
                 startPollingStatus();
+            } else if (tabId === 'tab-tools') {
+                // Initialize tools tab status if needed
+                pollTraceroute();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
-                    fetch('/tab-playground.html')
+                    fetch('/tab-playground.html'),
+                    fetch('/tab-tools.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
                 document.getElementById('tab-global').innerHTML = await globalRes.text();
                 document.getElementById('tab-playground').innerHTML = await pgRes.text();
+                document.getElementById('tab-tools').innerHTML = await toolsRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
@@ -990,12 +1144,13 @@
                 // Show ISP
                 document.getElementById('net-isp').textContent = data.public_info.isp;
                 
-                // Draw router ip logically
-                const ipParts = (lanIp ? lanIp.ip : '192.168.1.10').split('.');
-                if(ipParts.length === 4) {
-                    const routerIp = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.1`;
-                    document.getElementById('node-router-ip').textContent = routerIp;
-                }
+                // Show MAC, Gateway and IPv6
+                document.getElementById('local-mac').textContent = data.mac_address;
+                document.getElementById('local-gateway').textContent = data.default_gateway;
+                document.getElementById('local-ipv6').textContent = data.local_ipv6;
+                
+                // Draw router IP with the actual gateway IP
+                document.getElementById('node-router-ip').textContent = data.default_gateway;
             } catch (err) {
                 console.error("Lỗi khi lấy thông tin mạng:", err);
             }
@@ -1562,6 +1717,192 @@
             try {
                 await fetch('/api/socket/clear-logs', { method: 'POST' });
             } catch(e) { console.error(e); }
+        }
+
+        // ================= TAB 4: NETWORK TOOLS =================
+        let tracerouteInterval = null;
+
+        async function lookupDNS() {
+            const domainInput = document.getElementById('dns-domain');
+            const btn = document.getElementById('btn-dns-lookup');
+            const resultsDiv = document.getElementById('dns-results');
+            const ipv4List = document.getElementById('dns-ipv4-list');
+            const ipv6List = document.getElementById('dns-ipv6-list');
+            const resDomain = document.getElementById('dns-res-domain');
+
+            const domain = domainInput.value.trim();
+            if (!domain) {
+                alert("Vui lòng nhập tên miền!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner" style="width:14px; height:14px;"></span> Đang tra...`;
+            
+            // Reset flow chart steps
+            document.querySelectorAll('.dns-flow-step').forEach(step => step.classList.remove('active'));
+
+            try {
+                // Highlight Browser step
+                document.getElementById('dns-step-browser').classList.add('active');
+                await sleep(400);
+
+                // Highlight Resolver step
+                document.getElementById('dns-step-resolver').classList.add('active');
+                await sleep(400);
+
+                // Highlight Root Server step
+                document.getElementById('dns-step-root').classList.add('active');
+                await sleep(400);
+
+                const response = await fetch('/api/dns-lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain: domain })
+                });
+                const data = await response.json();
+
+                // Highlight Authoritative Nameserver step
+                document.getElementById('dns-step-authoritative').classList.add('active');
+
+                if (data.status === 'error') {
+                    alert(data.message);
+                    resultsDiv.style.display = 'none';
+                } else {
+                    resDomain.textContent = data.domain;
+                    ipv4List.innerHTML = data.ipv4.length ? data.ipv4.map(ip => `<li>${ip}</li>`).join('') : '<li>Không có địa chỉ IPv4</li>';
+                    ipv6List.innerHTML = data.ipv6.length ? data.ipv6.map(ip => `<li>${ip}</li>`).join('') : '<li>Không có địa chỉ IPv6</li>';
+                    resultsDiv.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối tới Server.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Tra cứu';
+            }
+        }
+
+        async function startTraceroute() {
+            const targetInput = document.getElementById('tracert-target');
+            const target = targetInput.value.trim();
+            if (!target) {
+                alert("Vui lòng nhập địa chỉ đích!");
+                return;
+            }
+
+            document.getElementById('btn-tracert-start').disabled = true;
+            document.getElementById('btn-tracert-stop').disabled = false;
+            document.getElementById('tracert-status-badge').textContent = 'Đang dò đường...';
+            document.getElementById('tracert-status-badge').style.color = 'var(--primary)';
+
+            document.getElementById('tracert-nodes-container').innerHTML = `
+                <div style="color:var(--text-muted); text-align:center; margin-top:60px; font-size:13.5px;">
+                    <span class="spinner" style="width:20px; height:20px; margin-bottom:8px;"></span><br>
+                    Đang gửi gói tin ICMP/UDP để thăm dò các chặng đi (Hop)...
+                </div>
+            `;
+            document.getElementById('tracert-console').textContent = 'Khởi động lệnh hệ thống...\n';
+
+            try {
+                const response = await fetch('/api/traceroute/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target })
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                    resetTracerouteUI();
+                } else {
+                    // Start polling
+                    if (tracerouteInterval) clearInterval(tracerouteInterval);
+                    tracerouteInterval = setInterval(pollTraceroute, 1000);
+                }
+            } catch (err) {
+                console.error(err);
+                resetTracerouteUI();
+            }
+        }
+
+        async function stopTraceroute() {
+            try {
+                await fetch('/api/traceroute/stop', { method: 'POST' });
+            } catch (e) { console.error(e); }
+            resetTracerouteUI();
+        }
+
+        async function pollTraceroute() {
+            try {
+                const res = await fetch('/api/traceroute/status');
+                const data = await res.json();
+
+                // If not loaded yet
+                const container = document.getElementById('tracert-nodes-container');
+                if (!container) return;
+
+                if (data.hops.length > 0) {
+                    container.innerHTML = '';
+                    let consoleText = '';
+                    
+                    data.hops.forEach(hop => {
+                        const isTimeout = hop.ip.includes("timed out") || hop.rtt === '*';
+                        container.innerHTML += `
+                            <div class="tracert-node ${isTimeout ? 'timeout' : ''}">
+                                <div class="tracert-hop-num">${hop.hop}</div>
+                                <div class="tracert-hop-ip">${hop.ip}</div>
+                                <div class="tracert-hop-rtt">${hop.rtt}</div>
+                            </div>
+                        `;
+                        consoleText += `${hop.raw}\n`;
+                    });
+                    
+                    document.getElementById('tracert-console').textContent = consoleText;
+                    
+                    // Auto scroll terminal
+                    const term = document.getElementById('tracert-console');
+                    term.scrollTop = term.scrollHeight;
+                }
+
+                if (!data.running) {
+                    if (tracerouteInterval) {
+                        clearInterval(tracerouteInterval);
+                        tracerouteInterval = null;
+                    }
+                    resetTracerouteUI();
+                    if (data.hops.length > 0) {
+                        document.getElementById('tracert-status-badge').textContent = 'Hoàn thành';
+                        document.getElementById('tracert-status-badge').style.color = 'var(--success)';
+                    }
+                } else {
+                    document.getElementById('tracert-status-badge').textContent = 'Đang dò chặng ' + (data.hops.length + 1) + '...';
+                    document.getElementById('btn-tracert-start').disabled = true;
+                    document.getElementById('btn-tracert-stop').disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function resetTracerouteUI() {
+            if (tracerouteInterval) {
+                clearInterval(tracerouteInterval);
+                tracerouteInterval = null;
+            }
+            const startBtn = document.getElementById('btn-tracert-start');
+            const stopBtn = document.getElementById('btn-tracert-stop');
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
+            
+            const badge = document.getElementById('tracert-status-badge');
+            if (badge) {
+                badge.textContent = 'Dừng / Chưa chạy';
+                badge.style.color = 'var(--text-muted)';
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
     </script>
 </body>

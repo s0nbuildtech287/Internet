@@ -1,0 +1,102 @@
+<p class="section-desc">Mô phỏng và thực hành các khái niệm về mạng diện rộng (WAN), dịch vụ phân giải tên miền (DNS) và định tuyến gói tin giữa các nút mạng trên Internet.</p>
+
+<div class="grid-2">
+    <!-- Left Card: DNS Lookup -->
+    <div class="card" style="display: flex; flex-direction: column;">
+        <div class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+            Bộ Phân Giải Tên Miền (DNS Lookup)
+        </div>
+        <p class="section-desc" style="margin-top:-10px;">Khi bạn gõ "google.com", giao thức DNS sẽ dịch tên miền này sang địa chỉ IP số để thiết bị kết nối. Hãy thử tra cứu ngay!</p>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <input type="text" id="dns-domain" class="input-control" placeholder="Nhập tên miền (vd: google.com)" value="google.com">
+            <button class="btn" id="btn-dns-lookup" onclick="lookupDNS()">Tra cứu</button>
+        </div>
+
+        <div id="dns-results" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <h4 style="font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">Kết Quả Phân Giải Cho: <span id="dns-res-domain" style="color:var(--primary);">google.com</span></h4>
+            
+            <div style="margin-bottom: 12px;">
+                <strong style="font-size:12px; color:var(--text-muted); text-transform:uppercase;">Địa chỉ IPv4:</strong>
+                <ul id="dns-ipv4-list" style="margin-top: 4px; padding-left: 20px; color: #ffffff; font-family:'JetBrains Mono', monospace; font-size:13.5px; line-height: 1.6;"></ul>
+            </div>
+            
+            <div>
+                <strong style="font-size:12px; color:var(--text-muted); text-transform:uppercase;">Địa chỉ IPv6:</strong>
+                <ul id="dns-ipv6-list" style="margin-top: 4px; padding-left: 20px; color: #ffffff; font-family:'JetBrains Mono', monospace; font-size:13.5px; line-height: 1.6;"></ul>
+            </div>
+        </div>
+
+        <!-- DNS Visual flow chart -->
+        <div style="margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 20px;">
+            <h4 style="font-size: 13.5px; font-weight: 700; color: #ffffff; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>🗺️</span> Quy trình truy vấn DNS:
+            </h4>
+            <div class="dns-flow">
+                <div class="dns-flow-step" id="dns-step-browser">
+                    <div class="step-num">1</div>
+                    <div class="step-label">Browser</div>
+                    <div class="step-desc">Nhập tên miền</div>
+                </div>
+                <div class="dns-flow-arrow">➔</div>
+                <div class="dns-flow-step" id="dns-step-resolver">
+                    <div class="step-num">2</div>
+                    <div class="step-label">Resolver</div>
+                    <div class="step-desc">DNS 8.8.8.8</div>
+                </div>
+                <div class="dns-flow-arrow">➔</div>
+                <div class="dns-flow-step" id="dns-step-root">
+                    <div class="step-num">3</div>
+                    <div class="step-label">Root Server</div>
+                    <div class="step-desc">Dò tìm đuôi .com</div>
+                </div>
+                <div class="dns-flow-arrow">➔</div>
+                <div class="dns-flow-step" id="dns-step-authoritative">
+                    <div class="step-num">4</div>
+                    <div class="step-label">Auth NameServer</div>
+                    <div class="step-desc">Trả IP đích</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Card: Traceroute WAN -->
+    <div class="card" style="display: flex; flex-direction: column;">
+        <div class="card-title" style="justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Dò Đường Truyền WAN (Traceroute)
+            </span>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn" id="btn-tracert-start" onclick="startTraceroute()">Dò đường</button>
+                <button class="btn btn-danger" id="btn-tracert-stop" onclick="stopTraceroute()" disabled>Dừng</button>
+            </div>
+        </div>
+        <p class="section-desc" style="margin-top:-10px;">Gói tin đi trên mạng WAN (Internet) phải nhảy (Hop) qua nhiều Router trung gian khác nhau. Hãy theo dõi lộ trình thời gian thực!</p>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <input type="text" id="tracert-target" class="input-control" placeholder="Nhập IP hoặc tên miền (vd: 8.8.8.8)" value="8.8.8.8">
+        </div>
+
+        <div style="flex: 1; min-height: 250px; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 16px;">
+            <h4 style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                <span>🗺️ Sơ đồ chặng đi (Traceroute Visual)</span>
+                <span id="tracert-status-badge" style="color:var(--text-muted); font-size:12px;">Chưa hoạt động</span>
+            </h4>
+            
+            <!-- Hop visual nodes container -->
+            <div id="tracert-nodes-container" class="tracert-nodes-container">
+                <div style="color:var(--text-muted); text-align:center; margin-top:60px; font-size:13.5px;">
+                    Nhấn "Dò đường" để vẽ sơ đồ lộ trình gói tin...
+                </div>
+            </div>
+            
+            <!-- Raw terminal view -->
+            <div style="margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Dữ liệu lệnh hệ thống:</div>
+                <div id="tracert-console" style="background:#090d16; border: 1px solid rgba(255,255,255,0.02); border-radius: 6px; font-family:'JetBrains Mono',monospace; font-size:11px; padding: 10px; color:#a3b8cc; max-height:120px; overflow-y:auto; white-space: pre-wrap; line-height:1.5;"></div>
+            </div>
+        </div>
+    </div>
+</div>
