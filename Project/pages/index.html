@@ -114,6 +114,15 @@
             padding: 4px;
             border-radius: 10px;
             border: 1px solid var(--card-border);
+            overflow-x: auto;
+            max-width: calc(100% - 220px);
+            scrollbar-width: none; /* Hide scrollbar Firefox */
+            -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none; /* Hide scrollbar Chrome/Safari/Opera */
         }
 
         .tab-btn {
@@ -129,6 +138,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .tab-btn:hover {
@@ -720,6 +731,138 @@
             to { stroke-dashoffset: -10; }
         }
 
+        /* --- Tab 7: OSI Simulator --- */
+        .osi-layer-card {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.015);
+            border: 1px solid rgba(255,255,255,0.04);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .osi-layer-card .layer-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 13.5px;
+            margin-right: 12px;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
+
+        .osi-layer-card .layer-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            margin-left: auto;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* OSI Layer Color Schemes when Active */
+        .osi-layer-card.active-l7 {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.15);
+        }
+        .osi-layer-card.active-l7 .layer-num { color: #ec4899; }
+
+        .osi-layer-card.active-l6 {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+        }
+        .osi-layer-card.active-l6 .layer-num { color: #a855f7; }
+
+        .osi-layer-card.active-l5 {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+        }
+        .osi-layer-card.active-l5 .layer-num { color: #6366f1; }
+
+        .osi-layer-card.active-l4 {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        }
+        .osi-layer-card.active-l4 .layer-num { color: #3b82f6; }
+
+        .osi-layer-card.active-l3 {
+            border-color: #06b6d4;
+            background: rgba(6, 182, 212, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
+        }
+        .osi-layer-card.active-l3 .layer-num { color: #06b6d4; }
+
+        .osi-layer-card.active-l2 {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+        }
+        .osi-layer-card.active-l2 .layer-num { color: #10b981; }
+
+        .osi-layer-card.active-l1 {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 17, 0.08);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(245, 158, 17, 0.15);
+        }
+        .osi-layer-card.active-l1 .layer-num { color: #f59e0b; }
+
+        /* Nested Packet Styling */
+        .osi-packet-nest {
+            border-radius: 4px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .osi-packet-header {
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            color: #ffffff;
+        }
+        .osi-packet-payload {
+            border: 1px dashed rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.01);
+            padding: 4px 6px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+        }
+        .osi-packet-trailer {
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: #ef4444;
+            color: #ffffff;
+        }
+
         .scan-table-container {
             max-height: 300px;
             overflow-y: auto;
@@ -1239,6 +1382,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M6 12h12M12 6v12"></path></svg>
                 Thiết Bị Mạng (Lab)
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-osi')" id="btn-tab-osi">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                Mô Hình OSI
+            </button>
         </div>
     </header>
 
@@ -1292,6 +1439,14 @@
             </div>
         </section>
 
+        <!-- ================= TAB 7: OSI SIMULATOR ================= -->
+        <section id="tab-osi" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Mô hình OSI...</p>
+            </div>
+        </section>
+
     </main>
 
     <footer>
@@ -1339,19 +1494,22 @@
                 drawTopology();
             } else if (tabId === 'tab-devices') {
                 drawDevices();
+            } else if (tabId === 'tab-osi') {
+                drawOsiStack();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
                     fetch('/tab-playground.html'),
                     fetch('/tab-tools.html'),
                     fetch('/tab-topology.html'),
-                    fetch('/tab-devices.html')
+                    fetch('/tab-devices.html'),
+                    fetch('/tab-osi.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
@@ -1360,6 +1518,7 @@
                 document.getElementById('tab-tools').innerHTML = await toolsRes.text();
                 document.getElementById('tab-topology').innerHTML = await topologyRes.text();
                 document.getElementById('tab-devices').innerHTML = await devicesRes.text();
+                document.getElementById('tab-osi').innerHTML = await osiRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
@@ -1370,6 +1529,8 @@
                     drawTopology();
                 } else if (document.getElementById('tab-devices').classList.contains('active')) {
                     drawDevices();
+                } else if (document.getElementById('tab-osi').classList.contains('active')) {
+                    drawOsiStack();
                 }
             } catch (err) {
                 console.error("Lỗi khi tải các tệp giao diện con:", err);
@@ -3018,6 +3179,374 @@
                 document.getElementById(`dev-node-${end}`).classList.add('highlight-receiver');
                 consoleDiv.innerHTML = `<span style='color:var(--success); font-weight:700;'>✔️ Định tuyến thành công!</span><br>➔ Router đã định tuyến gói tin thành công từ mạng LAN này sang mạng LAN kia dựa trên địa chỉ IP đích!`;
             }
+        }
+
+        // ================= TAB 7: OSI SIMULATOR =================
+        let osiState = 'idle'; // 'idle', 'encapsulating', 'ready_to_transmit', 'transmitting', 'deencapsulating', 'done'
+        let osiRawData = "Hello World";
+        
+        const osiLayers = [
+            { num: 7, name: "Application (Ứng dụng)", badge: "Data", protocol: "HTTP / SMTP", desc: "Tạo dữ liệu giao tiếp ứng dụng, gắn HTTP Request Header." },
+            { num: 6, name: "Presentation (Trình diễn)", badge: "Data", protocol: "UTF-8 / TLS", desc: "Mã hóa ký tự sang nhị phân hoặc nén dữ liệu, bảo mật bằng mã hóa." },
+            { num: 5, name: "Session (Phiên)", badge: "Data", protocol: "RPC / WinSock", desc: "Khởi tạo, đồng bộ hóa và quản lý phiên đối thoại giữa 2 máy." },
+            { num: 4, name: "Transport (Giao vận)", badge: "Segment", protocol: "TCP / UDP", desc: "Chia nhỏ dữ liệu thành các Segment, gắn Source Port & Destination Port." },
+            { num: 3, name: "Network (Mạng)", badge: "Packet", protocol: "IPv4 / IPv6", desc: "Gắn địa chỉ IP nguồn & IP đích. Đóng gói thành Packet để định tuyến." },
+            { num: 2, name: "Data Link (Liên kết dữ liệu)", badge: "Frame", protocol: "Ethernet / ARP", desc: "Gắn địa chỉ MAC nguồn & MAC đích, cộng thêm mã kiểm tra lỗi FCS ở đuôi (Frame)." },
+            { num: 1, name: "Physical (Vật lý)", badge: "Bits", protocol: "cáp / sóng", desc: "Chuyển toàn bộ Frame thành tín hiệu xung điện hoặc sóng vô tuyến (chuỗi bit nhị phân)." }
+        ];
+
+        function setOsiMessageTemplate(type) {
+            const input = document.getElementById('osi-msg-input');
+            if (!input) return;
+            if (type === 'http') {
+                input.value = "GET /index.html HTTP/1.1";
+            } else if (type === 'smtp') {
+                input.value = "MAIL FROM:<sender@fpt.vn> RCPT TO:<dest@google.com>";
+            } else {
+                input.value = "Hello World";
+            }
+            resetOsiSimulation();
+        }
+
+        function drawOsiStack() {
+            const clientStack = document.getElementById('osi-client-stack');
+            const serverStack = document.getElementById('osi-server-stack');
+            if (!clientStack || !serverStack) return;
+
+            clientStack.innerHTML = '';
+            serverStack.innerHTML = '';
+
+            osiLayers.forEach(layer => {
+                const cCard = document.createElement('div');
+                cCard.className = `osi-layer-card`;
+                cCard.id = `osi-client-l${layer.num}`;
+                cCard.innerHTML = `
+                    <span class="layer-num">L${layer.num}</span>
+                    <span>${layer.name}</span>
+                    <span class="layer-badge">${layer.badge}</span>
+                `;
+                clientStack.appendChild(cCard);
+
+                const sCard = document.createElement('div');
+                sCard.className = `osi-layer-card`;
+                sCard.id = `osi-server-l${layer.num}`;
+                sCard.innerHTML = `
+                    <span class="layer-num">L${layer.num}</span>
+                    <span>${layer.name}</span>
+                    <span class="layer-badge">${layer.badge}</span>
+                `;
+                serverStack.appendChild(sCard);
+            });
+        }
+
+        function resetOsiSimulation() {
+            osiState = 'idle';
+            const encBtn = document.getElementById('btn-osi-encap');
+            const decBtn = document.getElementById('btn-osi-decap');
+            if (encBtn) encBtn.disabled = false;
+            if (decBtn) decBtn.disabled = true;
+            
+            document.querySelectorAll('.osi-layer-card').forEach(card => {
+                card.className = 'osi-layer-card';
+            });
+            
+            const stream = document.getElementById('osi-bitstream');
+            if (stream) stream.style.display = 'none';
+            
+            const visualizer = document.getElementById('osi-packet-visualizer');
+            if (visualizer) visualizer.innerHTML = `<div style="color: var(--text-muted); font-style:italic;">Dữ liệu chưa được đóng gói.</div>`;
+            
+            const consoleEl = document.getElementById('osi-console');
+            if (consoleEl) consoleEl.innerHTML = `Hệ thống đã reset. Nhập thông điệp và bấm "Đóng gói (Encap)".`;
+        }
+
+        async function startOsiEncapsulation() {
+            const msgInput = document.getElementById('osi-msg-input');
+            if (!msgInput) return;
+            osiRawData = msgInput.value.trim() || "Hello World";
+            osiState = 'encapsulating';
+            
+            const encBtn = document.getElementById('btn-osi-encap');
+            if (encBtn) encBtn.disabled = true;
+            
+            const consoleEl = document.getElementById('osi-console');
+            
+            // 1. Layer 7: Application
+            consoleEl.innerHTML = `<strong>[Layer 7 - Application]</strong>: Đọc thông điệp gửi đi: "${osiRawData}". Gắn Application Header (HTTP/SMTP)...`;
+            highlightOsiLayer('client', 7);
+            updatePacketVisualizer(7);
+            await sleep(1500);
+
+            // 2. Layer 6: Presentation
+            consoleEl.innerHTML = `<strong>[Layer 6 - Presentation]</strong>: Chuyển đổi bảng mã văn bản sang UTF-8. Thiết lập mã hóa TLS (nếu sử dụng HTTPS)...`;
+            highlightOsiLayer('client', 6);
+            updatePacketVisualizer(6);
+            await sleep(1500);
+
+            // 3. Layer 5: Session
+            consoleEl.innerHTML = `<strong>[Layer 5 - Session]</strong>: Tạo phiên làm việc mới, gắn mã định danh Session ID để duy trì cuộc hội thoại...`;
+            highlightOsiLayer('client', 5);
+            updatePacketVisualizer(5);
+            await sleep(1500);
+
+            // 4. Layer 4: Transport
+            consoleEl.innerHTML = `<strong>[Layer 4 - Transport]</strong>: Đóng gói thành **Segment**. Sử dụng giao thức **TCP**, chọn cổng nguồn ngẫu nhiên (ví dụ: Port 50325) và cổng đích của dịch vụ (Port 80/443/25)...`;
+            highlightOsiLayer('client', 4);
+            updatePacketVisualizer(4);
+            await sleep(1500);
+
+            // 5. Layer 3: Network
+            consoleEl.innerHTML = `<strong>[Layer 3 - Network]</strong>: Đóng gói thành **Packet**. Gắn địa chỉ IP nguồn (IP máy bạn: 192.168.1.10) và địa chỉ IP máy nhận (Google: 8.8.8.8)...`;
+            highlightOsiLayer('client', 3);
+            updatePacketVisualizer(3);
+            await sleep(1500);
+
+            // 6. Layer 2: Data Link
+            consoleEl.innerHTML = `<strong>[Layer 2 - Data Link]</strong>: Đóng gói thành **Frame**. Tra cứu cổng và gắn địa chỉ MAC nguồn (AA:AA...) cùng địa chỉ MAC của Default Gateway (BB:BB...). Thêm mã kiểm tra lỗi FCS ở đuôi Frame...`;
+            highlightOsiLayer('client', 2);
+            updatePacketVisualizer(2);
+            await sleep(1500);
+
+            // 7. Layer 1: Physical
+            const binary = textToBinary(osiRawData);
+            consoleEl.innerHTML = `<strong>[Layer 1 - Physical]</strong>: Chuyển đổi toàn bộ Frame thành các xung tín hiệu nhị phân (Bits) để đẩy ra dây cáp truyền dẫn:<br><span style="color:var(--accent); font-weight:700; word-break:break-all;">${binary.substring(0, 48)}...</span>`;
+            highlightOsiLayer('client', 1);
+            updatePacketVisualizer(1);
+            
+            const bitstream = document.getElementById('osi-bitstream');
+            if (bitstream) {
+                bitstream.style.display = 'flex';
+                bitstream.innerHTML = binary.split('').slice(0, 15).map(bit => `<span>${bit}</span>`).join('');
+            }
+            
+            await sleep(1500);
+            
+            osiState = 'ready_to_transmit';
+            const decBtn = document.getElementById('btn-osi-decap');
+            if (decBtn) decBtn.disabled = false;
+            consoleEl.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Đã đóng gói thành công ở Máy gửi!</span><br>Nhấn nút <strong>"2. Truyền & Mở (Decap)"</strong> để đẩy dữ liệu qua đường truyền vật lý sang máy nhận.`;
+        }
+
+        async function startOsiDecapsulation() {
+            osiState = 'deencapsulating';
+            const decBtn = document.getElementById('btn-osi-decap');
+            if (decBtn) decBtn.disabled = true;
+            
+            const consoleEl = document.getElementById('osi-console');
+            consoleEl.innerHTML = `📡 Đang truyền tín hiệu vật lý qua cáp mạng sang Server...`;
+            
+            let scrollY = 0;
+            const bitStream = document.getElementById('osi-bitstream');
+            for (let t = 0; t < 10; t++) {
+                if (bitStream) {
+                    scrollY += 12;
+                    bitStream.style.transform = `translateY(${scrollY % 40}px)`;
+                }
+                await sleep(100);
+            }
+            
+            // 1. Layer 1: Physical (Server)
+            consoleEl.innerHTML = `<strong>[Layer 1 - Physical (Server)]</strong>: Nhận tín hiệu xung điện từ cổng RJ45. Đọc thành các bit 0 và 1...`;
+            highlightOsiLayer('server', 1);
+            updatePacketVisualizer(1);
+            await sleep(1500);
+
+            // 2. Layer 2: Data Link
+            consoleEl.innerHTML = `<strong>[Layer 2 - Data Link]</strong>: Đọc Frame Header. Xác nhận địa chỉ MAC đích khớp với card mạng (NIC) của Server. Tính toán kiểm tra checksum FCS thấy không có lỗi dữ liệu. Bóc MAC Header/Trailer...`;
+            highlightOsiLayer('server', 2);
+            updatePacketVisualizer(2);
+            await sleep(1500);
+
+            // 3. Layer 3: Network
+            consoleEl.innerHTML = `<strong>[Layer 3 - Network]</strong>: Đọc Packet Header. Xác nhận IP nhận trùng khớp với địa chỉ IP của Server. Bóc IP Header...`;
+            highlightOsiLayer('server', 3);
+            updatePacketVisualizer(3);
+            await sleep(1500);
+
+            // 4. Layer 4: Transport
+            consoleEl.innerHTML = `<strong>[Layer 4 - Transport]</strong>: Đọc Segment Header. Tra cứu Destination Port thấy yêu cầu gửi tới dịch vụ HTTP (Port 80). Bóc TCP Header...`;
+            highlightOsiLayer('server', 4);
+            updatePacketVisualizer(4);
+            await sleep(1500);
+
+            // 5. Layer 5: Session
+            consoleEl.innerHTML = `<strong>[Layer 5 - Session]</strong>: Xác định Session ID hợp lệ, duy trì kết nối để chuyển tiếp cho ứng dụng xử lý...`;
+            highlightOsiLayer('server', 5);
+            updatePacketVisualizer(5);
+            await sleep(1500);
+
+            // 6. Layer 6: Presentation
+            consoleEl.innerHTML = `<strong>[Layer 6 - Presentation]</strong>: Giải mã dữ liệu nhị phân từ định dạng UTF-8 trở lại dạng chuỗi ký tự...`;
+            highlightOsiLayer('server', 6);
+            updatePacketVisualizer(6);
+            await sleep(1500);
+
+            // 7. Layer 7: Application
+            consoleEl.innerHTML = `<strong>[Layer 7 - Application]</strong>: Ứng dụng Server đã nhận được thông điệp gốc! Đang hiển thị lên màn hình...`;
+            highlightOsiLayer('server', 7);
+            updatePacketVisualizer(7);
+            await sleep(1500);
+
+            osiState = 'done';
+            consoleEl.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Hoàn thành! Máy nhận đã nhận và giải mã thành công:</span><br><span style="background:var(--primary); color:#fff; border-radius:4px; padding:4px 8px; font-weight:700; font-size:14px; display:inline-block; margin-top:8px;">${osiRawData}</span>`;
+        }
+
+        function highlightOsiLayer(side, layerNum) {
+            for (let l = 1; l <= 7; l++) {
+                const card = document.getElementById(`osi-${side}-l${l}`);
+                if (card) {
+                    card.className = 'osi-layer-card';
+                }
+            }
+            const activeCard = document.getElementById(`osi-${side}-l${layerNum}`);
+            if (activeCard) {
+                activeCard.className = `osi-layer-card active-l${layerNum}`;
+            }
+        }
+
+        function updatePacketVisualizer(layerNum) {
+            const container = document.getElementById('osi-packet-visualizer');
+            if (!container) return;
+
+            let html = '';
+            let dataBox = `<div style="background: rgba(255,255,255,0.05); padding: 4px; border:1px solid rgba(255,255,255,0.1); border-radius:3px; font-weight:600; text-align:center;">"${osiRawData}"</div>`;
+            
+            if (layerNum === 7) {
+                html = `
+                    <div class="osi-packet-nest" style="background: rgba(236, 72, 153, 0.1); border: 1.5px solid #ec4899;">
+                        <span class="osi-packet-header" style="background:#ec4899;">HTTP Header</span>
+                        <div class="osi-packet-payload">${dataBox}</div>
+                    </div>
+                `;
+            } else if (layerNum === 6) {
+                html = `
+                    <div class="osi-packet-nest" style="background: rgba(168, 85, 247, 0.1); border: 1.5px solid #a855f7;">
+                        <span class="osi-packet-header" style="background:#a855f7;">Pres Header</span>
+                        <div class="osi-packet-payload">
+                            <div class="osi-packet-nest" style="background: rgba(236, 72, 153, 0.05); border: 1px solid #ec4899;">
+                                <span class="osi-packet-header" style="background:#ec4899; font-size:9px;">HTTP</span>
+                                <div class="osi-packet-payload">${dataBox}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (layerNum === 5) {
+                html = `
+                    <div class="osi-packet-nest" style="background: rgba(99, 102, 241, 0.1); border: 1.5px solid #6366f1;">
+                        <span class="osi-packet-header" style="background:#6366f1;">Session Header</span>
+                        <div class="osi-packet-payload">
+                            <div class="osi-packet-nest" style="background: rgba(168, 85, 247, 0.05); border: 1px solid #a855f7;">
+                                <span class="osi-packet-header" style="background:#a855f7; font-size:9px;">Pres</span>
+                                <div class="osi-packet-payload">
+                                    <div class="osi-packet-nest" style="background: rgba(236, 72, 153, 0.05); border: 1px solid #ec4899;">
+                                        <span class="osi-packet-header" style="background:#ec4899; font-size:9px;">HTTP</span>
+                                        <div class="osi-packet-payload">${dataBox}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (layerNum === 4) {
+                html = `
+                    <div class="osi-packet-nest" style="background: rgba(59, 130, 246, 0.1); border: 1.5px solid #3b82f6;">
+                        <span class="osi-packet-header" style="background:#3b82f6;">TCP Header (Src/Dst Port)</span>
+                        <div class="osi-packet-payload">
+                            <div class="osi-packet-nest" style="background: rgba(99, 102, 241, 0.05); border: 1px solid #6366f1;">
+                                <span class="osi-packet-header" style="background:#6366f1; font-size:9px;">Session</span>
+                                <div class="osi-packet-payload">
+                                    <div class="osi-packet-nest" style="background: rgba(168, 85, 247, 0.05); border: 1px solid #a855f7;">
+                                        <span class="osi-packet-header" style="background:#a855f7; font-size:9px;">Pres</span>
+                                        <div class="osi-packet-payload">
+                                            <div class="osi-packet-nest" style="background: rgba(236, 72, 153, 0.05); border: 1px solid #ec4899;">
+                                                <span class="osi-packet-header" style="background:#ec4899; font-size:9px;">HTTP</span>
+                                                <div class="osi-packet-payload">${dataBox}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (layerNum === 3) {
+                html = `
+                    <div class="osi-packet-nest" style="background: rgba(6, 182, 212, 0.1); border: 1.5px solid #06b6d4;">
+                        <span class="osi-packet-header" style="background:#06b6d4;">IP Header (Src/Dst IP)</span>
+                        <div class="osi-packet-payload">
+                            <div class="osi-packet-nest" style="background: rgba(59, 130, 246, 0.05); border: 1px solid #3b82f6;">
+                                <span class="osi-packet-header" style="background:#3b82f6; font-size:9px;">TCP</span>
+                                <div class="osi-packet-payload">
+                                    <div class="osi-packet-nest" style="background: rgba(99, 102, 241, 0.05); border: 1px solid #6366f1;">
+                                        <span class="osi-packet-header" style="background:#6366f1; font-size:9px;">Session</span>
+                                        <div class="osi-packet-payload">
+                                            <div class="osi-packet-nest" style="background: rgba(168, 85, 247, 0.05); border: 1px solid #a855f7;">
+                                                <span class="osi-packet-header" style="background:#a855f7; font-size:9px;">Pres</span>
+                                                <div class="osi-packet-payload">
+                                                    <div class="osi-packet-nest" style="background: rgba(236, 72, 153, 0.05); border: 1px solid #ec4899;">
+                                                        <span class="osi-packet-header" style="background:#ec4899; font-size:9px;">HTTP</span>
+                                                        <div class="osi-packet-payload">${dataBox}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (layerNum === 2) {
+                html = `
+                    <div class="osi-packet-nest" style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid #10b981;">
+                        <span class="osi-packet-header" style="background:#10b981;">MAC Header</span>
+                        <div class="osi-packet-payload">
+                            <div class="osi-packet-nest" style="background: rgba(6, 182, 212, 0.05); border: 1px solid #06b6d4;">
+                                <span class="osi-packet-header" style="background:#06b6d4; font-size:9px;">IP</span>
+                                <div class="osi-packet-payload">
+                                    <div class="osi-packet-nest" style="background: rgba(59, 130, 246, 0.05); border: 1px solid #3b82f6;">
+                                        <span class="osi-packet-header" style="background:#3b82f6; font-size:9px;">TCP</span>
+                                        <div class="osi-packet-payload">
+                                            <div class="osi-packet-nest" style="background: rgba(99, 102, 241, 0.05); border: 1px solid #6366f1;">
+                                                <span class="osi-packet-header" style="background:#6366f1; font-size:9px;">Session</span>
+                                                <div class="osi-packet-payload">
+                                                    <div class="osi-packet-nest" style="background: rgba(168, 85, 247, 0.05); border: 1px solid #a855f7;">
+                                                        <span class="osi-packet-header" style="background:#a855f7; font-size:9px;">Pres</span>
+                                                        <div class="osi-packet-payload">
+                                                            <div class="osi-packet-nest" style="background: rgba(236, 72, 153, 0.05); border: 1px solid #ec4899;">
+                                                                <span class="osi-packet-header" style="background:#ec4899; font-size:9px;">HTTP</span>
+                                                                <div class="osi-packet-payload">${dataBox}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="osi-packet-trailer">FCS Trailer</span>
+                    </div>
+                `;
+            } else if (layerNum === 1) {
+                const bits = textToBinary(osiRawData).substring(0, 32);
+                html = `
+                    <div style="background: rgba(245, 158, 11, 0.1); border: 1.5px solid #f59e0b; padding: 12px; border-radius: 4px; text-align: center; width: 100%;">
+                        <div style="font-weight: 700; color: #f59e0b; font-size: 10px; margin-bottom: 6px; text-transform: uppercase;">Physical Bits (Layer 1)</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size:12px; letter-spacing: 2px; color: #ffffff; word-break: break-all;">${bits}...</div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function textToBinary(text) {
+            return text.split('').map(char => {
+                const bin = char.charCodeAt(0).toString(2);
+                return '0'.repeat(8 - bin.length) + bin;
+            }).join('');
         }
 
         function sleep(ms) {
