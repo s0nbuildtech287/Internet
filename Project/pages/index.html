@@ -1850,7 +1850,10 @@
                         container.innerHTML += `
                             <div class="tracert-node ${isTimeout ? 'timeout' : ''}">
                                 <div class="tracert-hop-num">${hop.hop}</div>
-                                <div class="tracert-hop-ip">${hop.ip}</div>
+                                <div style="flex: 1;">
+                                    <div class="tracert-hop-ip" style="font-weight: 600;">${hop.ip}</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${hop.name}</div>
+                                </div>
                                 <div class="tracert-hop-rtt">${hop.rtt}</div>
                             </div>
                         `;

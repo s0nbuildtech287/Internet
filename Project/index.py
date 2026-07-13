@@ -462,11 +462,43 @@ def run_traceroute_thread(target):
                     avg_rtt = f"{round(sum(int(r) for r in rtts) / len(rtts))} ms"
                 elif "*" in hop_data:
                     avg_rtt = "*"
+
+                # Determine friendly name for the hop (Offline fast classification)
+                name = "Router trung chuyển Internet (WAN Node)"
+                if ip == "Request timed out.":
+                    name = "Thiết bị bảo mật (Ẩn danh / Không phản hồi ping)"
+                elif ip == "8.8.8.8":
+                    name = "Google DNS Server (Máy chủ đích)"
+                elif ip.startswith("192.168.") or ip.startswith("10.") or ip.startswith("172.16."):
+                    name = "Router nội bộ (LAN nhà bạn)"
+                else:
+                    # Check CGNAT: 100.64.0.0/10
+                    is_cgnat = False
+                    try:
+                        octets = [int(o) for o in ip.split('.')]
+                        if len(octets) == 4 and octets[0] == 100 and 64 <= octets[1] <= 127:
+                            is_cgnat = True
+                    except:
+                        pass
+                    if is_cgnat:
+                        name = "Trạm phân phối IP nội bộ nhà mạng (FPT CGNAT Hub)"
+                    else:
+                        # Public IP classifications
+                        if ip.startswith("118.69.") or ip.startswith("118.70.") or ip.startswith("42.116.") or ip.startswith("1.53.") or ip.startswith("210.245."):
+                            if "249" in ip or "250" in ip:
+                                name = "Cổng cáp quang biển / Cổng kết nối quốc tế (FPT Transit Gateway)"
+                            else:
+                                name = "Router truyền tải cốt lõi (FPT Core Backbone)"
+                        elif ip.startswith("72.14.") or ip.startswith("209.85.") or ip.startswith("74.125.") or ip.startswith("172.217.") or ip.startswith("142.250.") or ip.startswith("108.177."):
+                            name = "Router biên / Cửa ngõ kết nối Google (Google Peering Edge)"
+                        elif ip.startswith("8.8."):
+                            name = "Hệ thống máy chủ dịch vụ Google (Google Cloud Platform)"
                     
                 traceroute_hops.append({
                     "hop": hop_num,
                     "ip": ip,
                     "rtt": avg_rtt,
+                    "name": name,
                     "raw": line_str
                 })
         
