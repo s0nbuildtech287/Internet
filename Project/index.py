@@ -8,7 +8,7 @@ import os
 import subprocess
 import re
 
-PORT = 8000
+PORT = 8080
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages")
 
 # Global state for the TCP socket simulation

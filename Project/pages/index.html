@@ -169,7 +169,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 28px;
-            align-items: start;
+            align-items: stretch;
         }
 
         @media (max-width: 1024px) {
@@ -1064,7 +1064,7 @@
             btn.innerHTML = `<span class="spinner"></span> Đang Quét Sóng...`;
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
                         <span class="spinner" style="width:24px; height:24px; margin-bottom:10px;"></span><br>
                         Đang quét các tín hiệu mạng WiFi xung quanh thông qua bộ thu sóng không dây của máy...
                     </td>
@@ -1078,7 +1078,7 @@
                 if (data.status === 'error') {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--error); padding: 30px 0;">
+                            <td colspan="6" style="text-align: center; color: var(--error); padding: 30px 0;">
                                 ${data.message}
                             </td>
                         </tr>
@@ -1086,7 +1086,7 @@
                 } else if (!data.networks || data.networks.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--warning); padding: 30px 0;">
+                            <td colspan="6" style="text-align: center; color: var(--warning); padding: 30px 0;">
                                 Không phát hiện tín hiệu WiFi nào xung quanh. Thiết bị thu sóng không dây (Card Wifi) của bạn có thể đang tắt hoặc không hỗ trợ lệnh quét.
                             </td>
                         </tr>
@@ -1110,6 +1110,11 @@
                                 </td>
                                 <td>${net.channel}</td>
                                 <td><span class="badge ${net.auth.includes('Open') ? 'badge-warning' : 'badge-success'}">${net.auth}</span></td>
+                                <td>
+                                    <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11.5px; font-weight:600;" onclick="showAuditModal('${escapeJS(net.ssid)}', '${net.bssid}', '${net.auth}', '${net.signal}')">
+                                        Đánh giá bảo mật
+                                    </button>
+                                </td>
                             </tr>
                         `;
                     });
@@ -1117,7 +1122,7 @@
             } catch (err) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; color: var(--error); padding: 30px 0;">
+                        <td colspan="6" style="text-align: center; color: var(--error); padding: 30px 0;">
                             Lỗi kết nối tới Server. Hãy đảm bảo index.py đang chạy trên máy Windows.
                         </td>
                     </tr>
@@ -1127,6 +1132,77 @@
                 btn.innerHTML = 'Quét sóng WiFi';
             }
         }
+
+        // Helper to escape single quotes for JS onClick params
+        function escapeJS(str) {
+            return str.replace(/'/g, "\\'");
+        }
+
+        // Modal triggers
+        function showAuditModal(ssid, bssid, auth, signal) {
+            document.getElementById('modal-ssid').textContent = ssid;
+            document.getElementById('modal-bssid').textContent = bssid;
+            document.getElementById('modal-signal').textContent = signal;
+            
+            const authBadge = document.getElementById('modal-auth');
+            authBadge.textContent = auth;
+            if (auth.includes('Open') || auth.includes('None')) {
+                authBadge.className = 'badge badge-error';
+            } else {
+                authBadge.className = 'badge badge-success';
+            }
+
+            const iconEl = document.getElementById('modal-eval-icon');
+            const titleEl = document.getElementById('modal-eval-title');
+            const descEl = document.getElementById('modal-eval-desc');
+            const recEl = document.getElementById('modal-recommendation');
+
+            // Auditing logic based on network parameters
+            if (auth.includes('Open') || auth.includes('None')) {
+                iconEl.textContent = '❌';
+                titleEl.textContent = 'CỰC KỲ NGUY HIỂM (Không có mật khẩu)';
+                titleEl.style.color = 'var(--error)';
+                descEl.textContent = 'Mạng này không sử dụng mật khẩu. Mọi dữ liệu truyền qua không trung (bao gồm mật khẩu tài khoản, thông tin ngân hàng) đều có thể bị kẻ xấu bắt gói tin và đọc trộm dễ dàng mà không cần giải mã.';
+                recEl.textContent = 'Nên kích hoạt ngay bảo mật WPA2-Personal hoặc WPA3-Personal trong trang quản trị Router và đặt mật khẩu tối thiểu 12 ký tự.';
+            } else if (auth.includes('WEP')) {
+                iconEl.textContent = '⚠️';
+                titleEl.textContent = 'BẢO MẬT RẤT YẾU (Chuẩn WEP lỗi thời)';
+                titleEl.style.color = 'var(--warning)';
+                descEl.textContent = 'Chuẩn bảo mật WEP có lỗi thiết kế nghiêm trọng trong thuật toán mã hóa (RC4). Kẻ tấn công chỉ cần thu thập đủ số lượng gói tin trong vòng vài phút là có thể bẻ khóa mật khẩu tự động bằng các công cụ toán học.';
+                recEl.textContent = 'Nâng cấp ngay cấu hình bảo mật trên Router sang WPA2/WPA3. WEP không còn an toàn từ năm 2004.';
+            } else if (auth.includes('WPA-') && !auth.includes('WPA2') && !auth.includes('WPA3')) {
+                iconEl.textContent = '⚠️';
+                titleEl.textContent = 'BẢO MẬT TRUNG BÌNH - YẾU (Chuẩn WPA đời đầu)';
+                titleEl.style.color = 'var(--warning)';
+                descEl.textContent = 'Chuẩn WPA sử dụng giao thức TKIP hiện đã lỗi thời và dễ bị tấn công khai thác. Tốc độ truyền tải mạng cũng bị giới hạn dưới 54Mbps.';
+                recEl.textContent = 'Cấu hình lại Router để chuyển hẳn sang chế độ "WPA2-PSK (AES)" hoặc "WPA2/WPA3 Mixed".';
+            } else if (auth.includes('WPA2')) {
+                iconEl.textContent = '✔️';
+                titleEl.textContent = 'BẢO MẬT AN TOÀN (WPA2-AES)';
+                titleEl.style.color = 'var(--success)';
+                descEl.textContent = 'Đây là tiêu chuẩn bảo mật phổ biến nhất hiện nay, cực kỳ an toàn nếu mật khẩu đủ dài. Tuy nhiên, nó vẫn có nguy cơ bị tấn công dò mật khẩu ngoại tuyến (Offline Dictionary Attack) nếu kẻ xấu bắt được handshake.';
+                recEl.textContent = 'Đặt mật khẩu WiFi dài trên 12 ký tự (chứa chữ hoa, thường, số, ký tự đặc biệt) để chống lại các đòn dò quét mật khẩu từ danh sách mẫu. Đồng thời tắt tính năng WPS trên Router.';
+            } else if (auth.includes('WPA3')) {
+                iconEl.textContent = '🛡️';
+                titleEl.textContent = 'TIÊU CHUẨN TỐI TÂN (WPA3)';
+                titleEl.style.color = 'var(--success)';
+                descEl.textContent = 'Chuẩn bảo mật an toàn nhất hiện nay. Sử dụng cơ chế bắt tay SAE giúp ngăn chặn hoàn toàn việc dò quét mật khẩu offline. Ngay cả khi mật khẩu yếu, kẻ xấu cũng không thể dò quét nhanh được.';
+                recEl.textContent = 'Giữ nguyên cấu hình hiện tại. Đây là cấu hình bảo mật tối ưu nhất cho thiết bị cá nhân.';
+            } else {
+                iconEl.textContent = '❓';
+                titleEl.textContent = 'CHƯA XÁC ĐỊNH';
+                titleEl.style.color = 'var(--text-muted)';
+                descEl.textContent = 'Không tìm thấy thông tin chuẩn bảo mật rõ ràng. Có thể là chuẩn tùy biến doanh nghiệp.';
+                recEl.textContent = 'Đảm bảo rằng Router của bạn đang bật mã hóa WPA2 hoặc WPA3.';
+            }
+
+            document.getElementById('security-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('security-modal').style.display = 'none';
+        }
+
 
         // Tab 2: Render & Ping world servers
         function renderServersList() {
