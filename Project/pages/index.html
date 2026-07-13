@@ -498,6 +498,104 @@
             color: var(--warning);
         }
 
+        /* --- Tab 5: Topology Simulator Visualizer --- */
+        .topo-node-el {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 70px;
+            height: 70px;
+            cursor: pointer;
+            pointer-events: auto;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .topo-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #1f2937;
+            border: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .topo-node-el:hover .topo-icon-box {
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Active / Healthy states */
+        .topo-node-el.active-pc .topo-icon-box {
+            border-color: var(--primary);
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .topo-node-el.active-switch .topo-icon-box {
+            border-color: var(--accent);
+            color: #ffffff;
+            background: rgba(245, 158, 11, 0.1);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+        }
+
+        /* Failed states */
+        .topo-node-el.failed .topo-icon-box {
+            border-color: var(--error) !important;
+            color: var(--error) !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3) !important;
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .topo-node-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--text-muted);
+            white-space: nowrap;
+            transition: color 0.3s ease;
+        }
+
+        .topo-node-el.failed .topo-node-label {
+            color: var(--error);
+        }
+
+        .topo-node-el:hover .topo-node-label {
+            color: #ffffff;
+        }
+
+        /* SVG Line styling */
+        .topo-cable {
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 3.5;
+            transition: stroke 0.3s ease, stroke-dasharray 0.3s ease;
+        }
+
+        .topo-cable.failed {
+            stroke: var(--error) !important;
+            stroke-dasharray: 6 6;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -12; }
+        }
+
         .scan-table-container {
             max-height: 300px;
             overflow-y: auto;
@@ -1009,6 +1107,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
                 Công Cụ Mạng (DNS & Route WAN)
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-topology')" id="btn-tab-topology">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3zM6 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"></path></svg>
+                Mô Phỏng Topology
+            </button>
         </div>
     </header>
 
@@ -1043,6 +1145,14 @@
             <div style="text-align: center; padding: 40px;">
                 <span class="spinner" style="width:24px; height:24px;"></span>
                 <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Công Cụ Mạng...</p>
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: TOPOLOGY SIMULATOR ================= -->
+        <section id="tab-topology" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Mô Phỏng Topology...</p>
             </div>
         </section>
 
@@ -1089,28 +1199,36 @@
             } else if (tabId === 'tab-tools') {
                 // Initialize tools tab status if needed
                 pollTraceroute();
+            } else if (tabId === 'tab-topology') {
+                drawTopology();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes, toolsRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes, topologyRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
                     fetch('/tab-playground.html'),
-                    fetch('/tab-tools.html')
+                    fetch('/tab-tools.html'),
+                    fetch('/tab-topology.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
                 document.getElementById('tab-global').innerHTML = await globalRes.text();
                 document.getElementById('tab-playground').innerHTML = await pgRes.text();
                 document.getElementById('tab-tools').innerHTML = await toolsRes.text();
+                document.getElementById('tab-topology').innerHTML = await topologyRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
                 renderServersList();
                 startPollingStatus();
+                // If by default tab-topology is active (usually not, but in case):
+                if (document.getElementById('tab-topology').classList.contains('active')) {
+                    drawTopology();
+                }
             } catch (err) {
                 console.error("Lỗi khi tải các tệp giao diện con:", err);
                 document.querySelectorAll('.tab-content').forEach(el => {
@@ -1902,6 +2020,389 @@
                 badge.textContent = 'Dừng / Chưa chạy';
                 badge.style.color = 'var(--text-muted)';
             }
+        }
+
+        // ================= TAB 5: TOPOLOGY SIMULATOR =================
+        let currentTopology = 'star';
+        let failedNodes = {};  // nodeId -> bool
+        let failedLinks = {};  // linkId -> bool
+
+        const topoCoordinates = {
+            star: {
+                A: { x: 180, y: 120, label: "Node A" },
+                B: { x: 580, y: 120, label: "Node B" },
+                C: { x: 580, y: 380, label: "Node C" },
+                D: { x: 180, y: 380, label: "Node D" },
+                S: { x: 380, y: 250, label: "Switch trung tâm", isSwitch: true }
+            },
+            bus: {
+                A: { x: 140, y: 150, label: "Node A" },
+                B: { x: 300, y: 150, label: "Node B" },
+                C: { x: 460, y: 150, label: "Node C" },
+                D: { x: 620, y: 150, label: "Node D" }
+            },
+            ring: {
+                A: { x: 380, y: 100, label: "Node A" },
+                B: { x: 580, y: 250, label: "Node B" },
+                C: { x: 380, y: 400, label: "Node C" },
+                D: { x: 180, y: 250, label: "Node D" }
+            },
+            mesh: {
+                A: { x: 180, y: 120, label: "Node A" },
+                B: { x: 580, y: 120, label: "Node B" },
+                C: { x: 580, y: 380, label: "Node C" },
+                D: { x: 180, y: 380, label: "Node D" }
+            }
+        };
+
+        const topoLinks = {
+            star: [
+                { u: 'A', v: 'S' }, { u: 'B', v: 'S' }, { u: 'C', v: 'S' }, { u: 'D', v: 'S' }
+            ],
+            bus: [
+                { u: 'A', v: 'B', isSpine: true },
+                { u: 'B', v: 'C', isSpine: true },
+                { u: 'C', v: 'D', isSpine: true }
+            ],
+            ring: [
+                { u: 'A', v: 'B' }, { u: 'B', v: 'C' }, { u: 'C', v: 'D' }, { u: 'D', v: 'A' }
+            ],
+            mesh: [
+                { u: 'A', v: 'B' }, { u: 'B', v: 'C' }, { u: 'C', v: 'D' }, { u: 'D', v: 'A' },
+                { u: 'A', v: 'C' }, { u: 'B', v: 'D' }
+            ]
+        };
+
+        const topoDescriptions = {
+            star: {
+                title: "Star Topology (Hình Sao)",
+                pros: "Dễ quản lý, dễ mở rộng thêm thiết bị mới. Nếu một đường cáp của Node bị đứt, chỉ thiết bị đó bị ngắt kết nối, các thiết bị khác hoạt động bình thường.",
+                cons: "Thiết bị trung tâm (Switch/Hub) là điểm yếu duy nhất (Single Point of Failure). Nếu Switch hỏng, toàn bộ mạng sẽ bị sụp đổ hoàn toàn."
+            },
+            bus: {
+                title: "Bus Topology (Hình Tuyến)",
+                pros: "Cấu trúc đi dây cực kỳ đơn giản, tiết kiệm dây cáp và có chi phí triển khai rẻ nhất.",
+                cons: "Nếu sợi cáp chính bị đứt ở bất kỳ điểm nào, toàn bộ mạng sẽ bị tê liệt. Dữ liệu truyền đi dễ bị va chạm (Collision) khi nhiều máy gửi cùng lúc."
+            },
+            ring: {
+                title: "Ring Topology (Hình Vòng)",
+                pros: "Dữ liệu truyền đi có thứ tự (thông qua Token), không lo xảy ra va chạm dữ liệu. Tiết kiệm cáp hơn mạng Mesh.",
+                cons: "Nếu một Node hoặc một đoạn dây trong vòng bị hỏng, toàn bộ vòng sẽ bị đứt quãng và tê liệt. Rất khó để thêm thiết bị mới vào vòng."
+            },
+            mesh: {
+                title: "Mesh Topology (Hình Lưới)",
+                pros: "Độ bền vững cao nhất! Có nhiều đường dự phòng. Nếu đứt cáp giữa A và C, dữ liệu vẫn tự động đi vòng qua các đường khác thành công.",
+                cons: "Số lượng cáp kết nối khổng lồ, chi phí triển khai cực kỳ đắt đỏ và rất phức tạp trong việc quản lý dây cáp."
+            }
+        };
+
+        function changeTopology(type) {
+            currentTopology = type;
+            failedNodes = {};
+            failedLinks = {};
+            
+            const desc = topoDescriptions[type];
+            const titleEl = document.getElementById('topo-info-title');
+            if (titleEl) {
+                titleEl.textContent = desc.title;
+                document.getElementById('topo-pros').textContent = desc.pros;
+                document.getElementById('topo-cons').textContent = desc.cons;
+                document.getElementById('topo-console').innerHTML = `Đã chuyển sang mô hình <strong>${desc.title}</strong>. Click vào Node hoặc dây cáp để làm đứt/lỗi thử.`;
+            }
+            
+            drawTopology();
+        }
+
+        function getLinkKey(u, v) {
+            return u < v ? `${u}-${v}` : `${v}-${u}`;
+        }
+
+        function toggleNodeState(nodeId) {
+            failedNodes[nodeId] = !failedNodes[nodeId];
+            const stateText = failedNodes[nodeId] ? "<span style='color:var(--error); font-weight:700;'>LỖI (HỎNG)</span>" : "<span style='color:var(--success); font-weight:700;'>HOẠT ĐỘNG KHỎE MẠNH</span>";
+            document.getElementById('topo-console').innerHTML = `Thiết bị <strong>Node ${nodeId}</strong> chuyển sang trạng thái: ${stateText}`;
+            drawTopology();
+        }
+
+        function toggleLinkState(u, v) {
+            const key = getLinkKey(u, v);
+            failedLinks[key] = !failedLinks[key];
+            const stateText = failedLinks[key] ? "<span style='color:var(--error); font-weight:700;'>BỊ ĐỨT CÁP</span>" : "<span style='color:var(--success); font-weight:700;'>NỐI THÀNH CÔNG</span>";
+            document.getElementById('topo-console').innerHTML = `Cáp truyền giữa <strong>${u} ➔ ${v}</strong>: ${stateText}`;
+            drawTopology();
+        }
+
+        function resetTopologyState() {
+            failedNodes = {};
+            failedLinks = {};
+            document.getElementById('topo-console').textContent = "Đã sửa chữa toàn bộ mạng. Trạng thái: Bình thường.";
+            drawTopology();
+        }
+
+        function drawTopology() {
+            const nodesWrapper = document.getElementById('topo-nodes-wrapper');
+            const svgCanvas = document.getElementById('topo-svg-canvas');
+            
+            if (!nodesWrapper || !svgCanvas) return;
+            
+            nodesWrapper.innerHTML = '';
+            svgCanvas.innerHTML = '';
+            
+            const coords = topoCoordinates[currentTopology];
+            const links = topoLinks[currentTopology];
+            
+            // 1. Draw Links
+            links.forEach(link => {
+                const key = getLinkKey(link.u, link.v);
+                const isFailed = failedLinks[key];
+                
+                let x1, y1, x2, y2;
+                
+                if (currentTopology === 'bus') {
+                    const nodeU = coords[link.u];
+                    const nodeV = coords[link.v];
+                    x1 = nodeU.x;
+                    y1 = 300;
+                    x2 = nodeV.x;
+                    y2 = 300;
+                    createSvgLine(svgCanvas, x1, y1, x2, y2, link.u, link.v, isFailed);
+                } else {
+                    const nodeU = coords[link.u];
+                    const nodeV = coords[link.v];
+                    x1 = nodeU.x;
+                    y1 = nodeU.y;
+                    x2 = nodeV.x;
+                    y2 = nodeV.y;
+                    createSvgLine(svgCanvas, x1, y1, x2, y2, link.u, link.v, isFailed);
+                }
+            });
+            
+            // For Bus, also draw drop lines to the spine
+            if (currentTopology === 'bus') {
+                Object.keys(coords).forEach(nodeId => {
+                    const node = coords[nodeId];
+                    const dropKey = `drop-${nodeId}`;
+                    const isDropFailed = failedLinks[dropKey];
+                    createSvgLine(svgCanvas, node.x, node.y, node.x, 300, nodeId, 'bus-drop', isDropFailed, dropKey);
+                });
+            }
+            
+            // 2. Draw Nodes
+            Object.keys(coords).forEach(nodeId => {
+                const node = coords[nodeId];
+                const isFailed = failedNodes[nodeId];
+                
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = `topo-node-el ${isFailed ? 'failed' : (node.isSwitch ? 'active-switch' : 'active-pc')}`;
+                nodeDiv.style.left = `${node.x}px`;
+                nodeDiv.style.top = `${node.y}px`;
+                nodeDiv.setAttribute('onclick', `toggleNodeState('${nodeId}')`);
+                
+                let iconSvg = '';
+                if (node.isSwitch) {
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M7 12h10M12 7v10M9 9l6 6M15 9l-6 6"></path></svg>`;
+                } else {
+                    iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+                }
+                
+                nodeDiv.innerHTML = `
+                    <div class="topo-icon-box">
+                        ${iconSvg}
+                    </div>
+                    <div class="topo-node-label">${node.label} ${isFailed ? '(Lỗi)' : ''}</div>
+                `;
+                
+                nodesWrapper.appendChild(nodeDiv);
+            });
+        }
+
+        function createSvgLine(svg, x1, y1, x2, y2, u, v, isFailed, customKey = null) {
+            const key = customKey || getLinkKey(u, v);
+            
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("class", `topo-cable ${isFailed ? 'failed' : ''}`);
+            line.setAttribute("id", `cable-visible-${key}`);
+            svg.appendChild(line);
+            
+            const clickLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            clickLine.setAttribute("x1", x1);
+            clickLine.setAttribute("y1", y1);
+            clickLine.setAttribute("x2", x2);
+            clickLine.setAttribute("y2", y2);
+            clickLine.setAttribute("stroke", "transparent");
+            clickLine.setAttribute("stroke-width", "16");
+            clickLine.setAttribute("style", "cursor: pointer; pointer-events: auto;");
+            
+            if (customKey && customKey.startsWith('drop-')) {
+                const nodeId = customKey.replace('drop-', '');
+                clickLine.setAttribute("onclick", `event.stopPropagation(); toggleLinkState('${nodeId}', 'bus-drop');`);
+            } else {
+                clickLine.setAttribute("onclick", `event.stopPropagation(); toggleLinkState('${u}', '${v}');`);
+            }
+            
+            svg.appendChild(clickLine);
+        }
+
+        function findTopologyPath(start, end) {
+            const coords = topoCoordinates[currentTopology];
+            
+            if (failedNodes[start] || failedNodes[end]) {
+                return { success: false, reason: `Không thể truyền: Thiết bị gửi/nhận đang bị hỏng!` };
+            }
+            
+            if (start === end) {
+                return { success: true, path: [start] };
+            }
+            
+            const adj = {};
+            Object.keys(coords).forEach(node => { adj[node] = []; });
+            
+            const links = topoLinks[currentTopology];
+            
+            if (currentTopology === 'bus') {
+                const spineHops = ['A', 'B', 'C', 'D'];
+                for (let i = 0; i < spineHops.length - 1; i++) {
+                    const u = spineHops[i];
+                    const v = spineHops[i+1];
+                    const key = getLinkKey(u, v);
+                    
+                    if (!failedLinks[key] && !failedNodes[u] && !failedNodes[v]) {
+                        adj[u].push(v);
+                        adj[v].push(u);
+                    }
+                }
+                
+                if (failedLinks[`drop-${start}`]) {
+                    return { success: false, reason: `Không thể truyền: Cáp nối Node ${start} xuống trục chính bị đứt!` };
+                }
+                if (failedLinks[`drop-${end}`]) {
+                    return { success: false, reason: `Không thể truyền: Cáp nối Node ${end} xuống trục chính bị đứt!` };
+                }
+            } else {
+                links.forEach(link => {
+                    const u = link.u;
+                    const v = link.v;
+                    const key = getLinkKey(u, v);
+                    
+                    if (!failedLinks[key] && !failedNodes[u] && !failedNodes[v]) {
+                        adj[u].push(v);
+                        adj[v].push(u);
+                    }
+                });
+            }
+            
+            const queue = [[start]];
+            const visited = new Set([start]);
+            
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const node = path[path.length - 1];
+                
+                if (node === end) {
+                    return { success: true, path: path };
+                }
+                
+                adj[node].forEach(neighbor => {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        queue.push([...path, neighbor]);
+                    }
+                });
+            }
+            
+            if (currentTopology === 'star' && failedNodes['S']) {
+                return { success: false, reason: "Mạng Star bị liệt hoàn toàn do Switch trung tâm bị hỏng!" };
+            }
+            
+            return { success: false, reason: `Không tìm thấy đường đi! Liên kết truyền dẫn tới ${end} đã bị cô lập.` };
+        }
+
+        async function simulatePacketTransmission() {
+            const start = document.getElementById('topo-sender').value;
+            const end = document.getElementById('topo-receiver').value;
+            const consoleDiv = document.getElementById('topo-console');
+            
+            const result = findTopologyPath(start, end);
+            
+            if (!result.success) {
+                consoleDiv.innerHTML = `<span style="color:var(--error); font-weight:700;">❌ ${result.reason}</span>`;
+                return;
+            }
+            
+            const coords = topoCoordinates[currentTopology];
+            const path = result.path;
+            const checkpoints = [];
+            
+            if (currentTopology === 'bus') {
+                checkpoints.push({ x: coords[start].x, y: coords[start].y });
+                checkpoints.push({ x: coords[start].x, y: 300 });
+                for (let i = 1; i < path.length - 1; i++) {
+                    const node = path[i];
+                    checkpoints.push({ x: coords[node].x, y: 300 });
+                }
+                if (start !== end) {
+                    checkpoints.push({ x: coords[end].x, y: 300 });
+                }
+                checkpoints.push({ x: coords[end].x, y: coords[end].y });
+            } else {
+                path.forEach(nodeId => {
+                    checkpoints.push({ x: coords[nodeId].x, y: coords[nodeId].y });
+                });
+            }
+            
+            const packet = document.getElementById('topo-packet');
+            if (!packet) return;
+            
+            packet.style.display = 'block';
+            packet.style.left = `${checkpoints[0].x}px`;
+            packet.style.top = `${checkpoints[0].y}px`;
+            
+            void packet.offsetWidth;
+            
+            for (let i = 1; i < checkpoints.length; i++) {
+                const pt = checkpoints[i];
+                packet.style.left = `${pt.x}px`;
+                packet.style.top = `${pt.y}px`;
+                
+                if (currentTopology === 'bus') {
+                    if (i === 1) {
+                        consoleDiv.innerHTML = `➔ Gói tin từ <strong>Node ${start}</strong> chạy xuống cáp trục chính...`;
+                    } else if (i === checkpoints.length - 1) {
+                        consoleDiv.innerHTML = `➔ Gói tin đi lên từ cáp trục vào <strong>Node ${end}</strong>...`;
+                    } else {
+                        consoleDiv.innerHTML = `➔ Dữ liệu chạy trên cáp trục đi ngang qua chặng Node...`;
+                    }
+                } else if (currentTopology === 'star') {
+                    const node = path[i];
+                    if (node === 'S') {
+                        consoleDiv.innerHTML = `➔ Gói tin đi vào **Switch trung tâm**...`;
+                    } else {
+                        consoleDiv.innerHTML = `➔ Switch định tuyến và đẩy dữ liệu sang **Node ${node}**...`;
+                    }
+                } else {
+                    consoleDiv.innerHTML = `➔ Gói tin chuyển tiếp qua trạm trung chuyển **Node ${path[i]}**...`;
+                }
+                
+                await sleep(550);
+            }
+            
+            let routeText = path.join(' ➔ ');
+            if (currentTopology === 'bus') {
+                routeText = `${start} ➔ Cáp trục ➔ ${end}`;
+            }
+            
+            if (path.length > 2 && currentTopology === 'mesh') {
+                consoleDiv.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ TỰ ĐỘNG ĐỊNH TUYẾN LẠI THÀNH CÔNG!</span> Đường đi vòng: ${routeText}.`;
+            } else {
+                consoleDiv.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Truyền nhận tin thành công!</span> Đường đi: ${routeText}.`;
+            }
+            
+            await sleep(600);
+            packet.style.display = 'none';
         }
 
         function sleep(ms) {

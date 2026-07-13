@@ -1,0 +1,96 @@
+<p class="section-desc">Phòng thí nghiệm tương tác: Trải nghiệm nguyên lý hoạt động của các cấu trúc liên kết mạng phổ biến. Bạn có thể Click chuột vào bất kỳ máy tính hoặc sợi cáp nào để gây sự cố (lỗi/đứt dây) và kiểm tra khả năng phục hồi mạng.</p>
+
+<div class="playground-layout" style="grid-template-columns: 320px 1fr; gap: 28px; display: grid;">
+    <!-- Left Panel: Controls -->
+    <div class="pg-control-panel" style="gap: 16px; display: flex; flex-direction: column;">
+        <!-- Config Section -->
+        <div class="pg-panel">
+            <div class="panel-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                Cấu Hình Mô Phỏng
+            </div>
+            
+            <div class="input-group">
+                <label>Chọn Mô Hình (Topology)</label>
+                <select id="topo-select" class="input-control" onchange="changeTopology(this.value)" style="background: #1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius: 6px; padding: 8px;">
+                    <option value="star">Star (Hình Sao - Phổ biến nhất)</option>
+                    <option value="bus">Bus (Hình Tuyến - Lỗi thời)</option>
+                    <option value="ring">Ring (Hình Vòng - Có thứ tự)</option>
+                    <option value="mesh">Mesh (Hình Lưới - Bền vững nhất)</option>
+                </select>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="input-group">
+                    <label>Node Gửi</label>
+                    <select id="topo-sender" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px;">
+                        <option value="A">Node A</option>
+                        <option value="B">Node B</option>
+                        <option value="C">Node C</option>
+                        <option value="D">Node D</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Node Nhận</label>
+                    <select id="topo-receiver" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px;">
+                        <option value="C" selected>Node C</option>
+                        <option value="A">Node A</option>
+                        <option value="B">Node B</option>
+                        <option value="D">Node D</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row-btn" style="margin-top: 15px;">
+                <button class="btn" onclick="simulatePacketTransmission()" style="flex:1;">Gửi gói tin</button>
+                <button class="btn btn-outline" onclick="resetTopologyState()" style="padding: 10px 14px;">Reset</button>
+            </div>
+        </div>
+
+        <!-- Info & Status Panel -->
+        <div class="pg-panel" style="flex: 1; display: flex; flex-direction: column;">
+            <div class="panel-heading" style="color:var(--accent);">
+                📊 Đánh giá & Trạng thái
+            </div>
+            
+            <div style="font-size: 13.5px; line-height: 1.6; flex: 1;">
+                <div id="topo-info-title" style="font-weight: 700; color: #ffffff; font-size:14.5px; margin-bottom: 8px;">Star Topology</div>
+                
+                <div style="background: rgba(255,255,255,0.02); border-radius: 6px; padding: 10px; border:1px solid rgba(255,255,255,0.04); margin-bottom: 12px;">
+                    <div style="color: var(--success); font-weight:700; font-size:12px; margin-bottom:4px;">🟢 ƯU ĐIỂM:</div>
+                    <span id="topo-pros" style="color: var(--text-muted); font-size:12.5px;">Dễ quản lý, dễ mở rộng. Một thiết bị hỏng không ảnh hưởng đến toàn bộ mạng.</span>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.02); border-radius: 6px; padding: 10px; border:1px solid rgba(255,255,255,0.04); margin-bottom: 12px;">
+                    <div style="color: var(--error); font-weight:700; font-size:12px; margin-bottom:4px;">🔴 NHƯỢC ĐIỂM:</div>
+                    <span id="topo-cons" style="color: var(--text-muted); font-size:12.5px;">Thiết bị trung tâm (Switch/Hub) mà hỏng thì toàn bộ hệ thống mạng sập hoàn toàn.</span>
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; margin-top: auto;">
+                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Log hoạt động mô phỏng:</div>
+                <div id="topo-console" style="background:#090d16; border-radius: 6px; font-family:'JetBrains Mono',monospace; font-size:11px; padding: 8px; color:#a3b8cc; height:80px; overflow-y:auto; line-height:1.4;">Hệ thống sẵn sàng. Chọn một mô hình và nhấn "Gửi gói tin".</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Interactive Canvas Area -->
+    <div class="card" style="position: relative; height: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; background: #0b111e; border: 1px solid rgba(255,255,255,0.03);">
+        <div style="position: absolute; top: 16px; left: 16px; font-size: 12.5px; color: var(--text-muted); z-index: 10;">
+            💡 <em>Mẹo: Click vào Node để tắt/bật, click vào đường nối để làm đứt/nối cáp.</em>
+        </div>
+        
+        <!-- SVG lines wrapper for cable connections -->
+        <svg id="topo-svg-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: auto;">
+            <!-- Lines will be dynamically generated by Javascript -->
+        </svg>
+
+        <!-- Visual Packet Dot -->
+        <div id="topo-packet" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+
+        <!-- Node Elements Wrapper -->
+        <div id="topo-nodes-wrapper" style="position: absolute; width: 100%; height: 100%; z-index: 5; pointer-events: none;">
+            <!-- Nodes will be dynamically absolute-positioned and generated -->
+        </div>
+    </div>
+</div>
