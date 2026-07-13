@@ -1,0 +1,154 @@
+<p class="section-desc">Phòng thí nghiệm thiết bị mạng: Quan sát sự khác biệt về cách chuyển tiếp gói tin của Hub (Tầng 1 - Vật lý), Switch (Tầng 2 - Data Link) và Router (Tầng 3 - Network).</p>
+
+<div class="playground-layout" style="grid-template-columns: 340px 1fr; gap: 28px; display: grid;">
+    <!-- Left Control Panel -->
+    <div class="pg-control-panel" style="gap: 16px; display: flex; flex-direction: column;">
+        <!-- Configuration Card -->
+        <div class="pg-panel">
+            <div class="panel-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M7 12h10M12 7v10M9 9l6 6M15 9l-6 6"></path></svg>
+                Chọn Thiết Bị Demo
+            </div>
+            
+            <div class="input-group">
+                <label>Loại thiết bị</label>
+                <select id="dev-select" class="input-control" onchange="changeDeviceMode(this.value)" style="background: #1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius: 6px; padding: 8px;">
+                    <option value="hub">Hub (Tầng 1 - Vật lý - Flood mọi cổng)</option>
+                    <option value="switch">Switch (Tầng 2 - Data Link - Học địa chỉ MAC)</option>
+                    <option value="router">Router (Tầng 3 - Network - Định tuyến IP khác Subnet)</option>
+                </select>
+            </div>
+            
+            <!-- Nodes selection for Hub & Switch -->
+            <div id="dev-selectors-hub-switch" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="input-group">
+                    <label>Node Gửi</label>
+                    <select id="dev-sender" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px;">
+                        <option value="A">Node A (MAC: AA)</option>
+                        <option value="B">Node B (MAC: BB)</option>
+                        <option value="C">Node C (MAC: CC)</option>
+                        <option value="D">Node D (MAC: DD)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Node Nhận</label>
+                    <select id="dev-receiver" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px;">
+                        <option value="C" selected>Node C (MAC: CC)</option>
+                        <option value="A">Node A (MAC: AA)</option>
+                        <option value="B">Node B (MAC: BB)</option>
+                        <option value="D">Node D (MAC: DD)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Nodes selection for Router -->
+            <div id="dev-selectors-router" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; display: none;">
+                <div class="input-group">
+                    <label>Máy Gửi (LAN A/B)</label>
+                    <select id="dev-router-sender" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px;">
+                        <option value="A1">PC A1 (192.168.1.10)</option>
+                        <option value="A2">PC A2 (192.168.1.20)</option>
+                        <option value="B1">PC B1 (10.0.0.10)</option>
+                        <option value="B2">PC B2 (10.0.0.20)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Máy Nhận</label>
+                    <select id="dev-router-receiver" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px;">
+                        <option value="B1" selected>PC B1 (10.0.0.10)</option>
+                        <option value="A1">PC A1 (192.168.1.10)</option>
+                        <option value="A2">PC A2 (192.168.1.20)</option>
+                        <option value="B2">PC B2 (10.0.0.20)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row-btn" style="margin-top: 15px;">
+                <button class="btn" onclick="runDeviceSimulation()" style="flex:1;">Gửi gói tin</button>
+                <button class="btn btn-outline" id="btn-clear-dev-table" onclick="clearDeviceMemory()" style="padding: 10px 14px;">Clear Table</button>
+            </div>
+        </div>
+
+        <!-- Information & Memory Panel -->
+        <div class="pg-panel" style="flex: 1; display: flex; flex-direction: column;">
+            <div class="panel-heading" id="dev-table-title" style="color:var(--accent);">
+                📋 Bảng dữ liệu thiết bị
+            </div>
+            
+            <div style="flex: 1; overflow-y: auto; font-size:13px; margin-bottom: 12px;">
+                <!-- Table for Hub (No memory) -->
+                <div id="dev-hub-info" style="color: var(--text-muted); line-height: 1.5; padding: 5px;">
+                    Hub là thiết bị hoạt động ở <strong>Tầng 1 (Physical)</strong>. Nó không đọc địa chỉ MAC hay IP và không có bộ nhớ, vì vậy không có bảng tra cứu nào. Hub chỉ khuếch đại tín hiệu điện nhận từ một cổng và phát lại ra tất cả các cổng còn lại.
+                </div>
+
+                <!-- Table for Switch (MAC Table) -->
+                <div id="dev-switch-table-container" style="display: none;">
+                    <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom: 8px;">MAC Address Table (Bảng địa chỉ MAC)</div>
+                    <table class="scan-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05); text-align: left;">
+                                <th style="padding: 6px;">Cổng (Port)</th>
+                                <th style="padding: 6px;">Địa chỉ MAC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dev-switch-table-body">
+                            <tr>
+                                <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 12px;">Bảng MAC trống. Hãy gửi gói tin để Switch học địa chỉ.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table for Router (Routing Table) -->
+                <div id="dev-router-table-container" style="display: none;">
+                    <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom: 8px;">Routing Table (Bảng Định Tuyến)</div>
+                    <table class="scan-table" style="width: 100%; font-size: 11px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05); text-align: left;">
+                                <th style="padding: 4px;">Đích đến (Subnet)</th>
+                                <th style="padding: 4px;">Mask</th>
+                                <th style="padding: 4px;">Interface</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.03);">
+                                <td style="padding: 6px; font-weight:600; color:var(--primary);">192.168.1.0</td>
+                                <td style="padding: 6px; color:var(--text-muted);">/24</td>
+                                <td style="padding: 6px;">G0/0 (LAN A)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px; font-weight:600; color:var(--accent);">10.0.0.0</td>
+                                <td style="padding: 6px; color:var(--text-muted);">/24</td>
+                                <td style="padding: 6px;">G0/1 (LAN B)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; margin-top: auto;">
+                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Nhật ký gói tin (Packet Log):</div>
+                <div id="dev-console" style="background:#090d16; border-radius: 6px; font-family:'JetBrains Mono',monospace; font-size:11px; padding: 8px; color:#a3b8cc; height:120px; overflow-y:auto; line-height:1.4;">Chọn thiết bị và nhấn "Gửi gói tin" để chạy kiểm thử mô phỏng.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Graphic Canvas Area -->
+    <div class="card" style="position: relative; height: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; background: #0b111e; border: 1px solid rgba(255,255,255,0.03);">
+        <!-- SVG lines canvas for connections -->
+        <svg id="dev-svg-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;">
+            <!-- Lines will be dynamically generated -->
+        </svg>
+
+        <!-- Dynamic pool of packets for parallel visual flight -->
+        <div class="dev-packet-dot" id="dev-packet-0" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+        <div class="dev-packet-dot" id="dev-packet-1" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+        <div class="dev-packet-dot" id="dev-packet-2" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+        <div class="dev-packet-dot" id="dev-packet-3" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+
+        <!-- Node Elements Wrapper -->
+        <div id="dev-nodes-wrapper" style="position: absolute; width: 100%; height: 100%; z-index: 5; pointer-events: none;">
+            <!-- Node circles generated here -->
+        </div>
+    </div>
+</div>

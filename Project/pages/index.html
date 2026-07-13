@@ -596,6 +596,130 @@
             to { stroke-dashoffset: -12; }
         }
 
+        /* --- Tab 6: Network Devices Lab --- */
+        .dev-subnet-zone {
+            position: absolute;
+            border-radius: 12px;
+            pointer-events: none;
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-sizing: border-box;
+            z-index: 2;
+        }
+        
+        .dev-subnet-zone.lan-a {
+            background: rgba(59, 130, 246, 0.03);
+            border: 1.5px dashed rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+        }
+        
+        .dev-subnet-zone.lan-b {
+            background: rgba(245, 158, 11, 0.03);
+            border: 1.5px dashed rgba(245, 158, 11, 0.15);
+            color: var(--accent);
+        }
+
+        .dev-node-el {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 75px;
+            height: 75px;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .dev-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #1f2937;
+            border: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Active / Healthy states */
+        .dev-node-el.active-pc .dev-icon-box {
+            border-color: var(--primary);
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .dev-node-el.active-switch .dev-icon-box {
+            border-color: var(--accent);
+            color: #ffffff;
+            background: rgba(245, 158, 11, 0.1);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .dev-node-el.active-router .dev-icon-box {
+            border-color: var(--success);
+            color: #ffffff;
+            background: rgba(16, 185, 129, 0.1);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .dev-node-el.highlight-sender .dev-icon-box {
+            border-color: var(--primary) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px var(--primary) !important;
+        }
+
+        .dev-node-el.highlight-receiver .dev-icon-box {
+            border-color: var(--accent) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px var(--accent) !important;
+        }
+
+        .dev-node-el.highlight-ignore .dev-icon-box {
+            border-color: var(--error) !important;
+            color: var(--error) !important;
+            opacity: 0.6;
+        }
+
+        .dev-node-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .dev-node-ip {
+            font-size: 9.5px;
+            color: var(--text-muted);
+            opacity: 0.8;
+            margin-top: -2px;
+        }
+
+        .dev-cable {
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 3;
+            transition: stroke 0.3s ease;
+        }
+
+        .dev-cable.active {
+            stroke: var(--accent);
+            stroke-dasharray: 4 4;
+            animation: dev-dash 0.8s linear infinite;
+        }
+
+        @keyframes dev-dash {
+            to { stroke-dashoffset: -10; }
+        }
+
         .scan-table-container {
             max-height: 300px;
             overflow-y: auto;
@@ -1111,6 +1235,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3zM6 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"></path></svg>
                 Mô Phỏng Topology
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-devices')" id="btn-tab-devices">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M6 12h12M12 6v12"></path></svg>
+                Thiết Bị Mạng (Lab)
+            </button>
         </div>
     </header>
 
@@ -1153,6 +1281,14 @@
             <div style="text-align: center; padding: 40px;">
                 <span class="spinner" style="width:24px; height:24px;"></span>
                 <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Mô Phỏng Topology...</p>
+            </div>
+        </section>
+
+        <!-- ================= TAB 6: NETWORK DEVICES LAB ================= -->
+        <section id="tab-devices" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Thiết Bị Mạng (Lab)...</p>
             </div>
         </section>
 
@@ -1201,18 +1337,21 @@
                 pollTraceroute();
             } else if (tabId === 'tab-topology') {
                 drawTopology();
+            } else if (tabId === 'tab-devices') {
+                drawDevices();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes, toolsRes, topologyRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
                     fetch('/tab-playground.html'),
                     fetch('/tab-tools.html'),
-                    fetch('/tab-topology.html')
+                    fetch('/tab-topology.html'),
+                    fetch('/tab-devices.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
@@ -1220,14 +1359,17 @@
                 document.getElementById('tab-playground').innerHTML = await pgRes.text();
                 document.getElementById('tab-tools').innerHTML = await toolsRes.text();
                 document.getElementById('tab-topology').innerHTML = await topologyRes.text();
+                document.getElementById('tab-devices').innerHTML = await devicesRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
                 renderServersList();
                 startPollingStatus();
-                // If by default tab-topology is active (usually not, but in case):
+                
                 if (document.getElementById('tab-topology').classList.contains('active')) {
                     drawTopology();
+                } else if (document.getElementById('tab-devices').classList.contains('active')) {
+                    drawDevices();
                 }
             } catch (err) {
                 console.error("Lỗi khi tải các tệp giao diện con:", err);
@@ -2403,6 +2545,479 @@
             
             await sleep(600);
             packet.style.display = 'none';
+        }
+
+        // ================= TAB 6: NETWORK DEVICES LAB =================
+        let currentDeviceMode = 'hub';
+        let switchMacTable = {};  // mac (e.g. 'A') -> port
+
+        // Absolute coords in 800x500 space
+        const devCoordinates = {
+            hub_switch: {
+                A: { x: 180, y: 120, label: "Node A", mac: "AA", port: 1 },
+                B: { x: 580, y: 120, label: "Node B", mac: "BB", port: 2 },
+                C: { x: 580, y: 380, label: "Node C", mac: "CC", port: 3 },
+                D: { x: 180, y: 380, label: "Node D", mac: "DD", port: 4 },
+                CTR: { x: 380, y: 250, label: "Hub / Switch", isCenter: true }
+            },
+            router: {
+                A1: { x: 140, y: 140, label: "PC A1", ip: "192.168.1.10", mac: "AA:01", isLAN_A: true },
+                A2: { x: 140, y: 360, label: "PC A2", ip: "192.168.1.20", mac: "AA:02", isLAN_A: true },
+                SA: { x: 240, y: 250, label: "Switch LAN A", isSwitch: true, isLAN_A: true },
+                
+                B1: { x: 660, y: 140, label: "PC B1", ip: "10.0.0.10", mac: "BB:01", isLAN_B: true },
+                B2: { x: 660, y: 360, label: "PC B2", ip: "10.0.0.20", mac: "BB:02", isLAN_B: true },
+                SB: { x: 560, y: 250, label: "Switch LAN B", isSwitch: true, isLAN_B: true },
+                
+                RT: { x: 400, y: 250, label: "Router R1", isRouter: true }
+            }
+        };
+
+        const devLinks = {
+            hub_switch: [
+                { u: 'A', v: 'CTR' }, { u: 'B', v: 'CTR' }, { u: 'C', v: 'CTR' }, { u: 'D', v: 'CTR' }
+            ],
+            router: [
+                // LAN A
+                { u: 'A1', v: 'SA' }, { u: 'A2', v: 'SA' },
+                { u: 'SA', v: 'RT', label: "G0/0 (192.168.1.1)" },
+                // LAN B
+                { u: 'B1', v: 'SB' }, { u: 'B2', v: 'SB' },
+                { u: 'SB', v: 'RT', label: "G0/1 (10.0.0.1)" }
+            ]
+        };
+
+        function changeDeviceMode(mode) {
+            currentDeviceMode = mode;
+            
+            // Toggle visibility of DOM panels
+            const selectorsHubSwitch = document.getElementById('dev-selectors-hub-switch');
+            const selectorsRouter = document.getElementById('dev-selectors-router');
+            const hubInfo = document.getElementById('dev-hub-info');
+            const switchTable = document.getElementById('dev-switch-table-container');
+            const routerTable = document.getElementById('dev-router-table-container');
+            
+            if (selectorsHubSwitch) {
+                if (mode === 'router') {
+                    selectorsHubSwitch.style.display = 'none';
+                    selectorsRouter.style.display = 'grid';
+                    hubInfo.style.display = 'none';
+                    switchTable.style.display = 'none';
+                    routerTable.style.display = 'block';
+                    document.getElementById('dev-table-title').textContent = "📋 Bảng Định Tuyến Router";
+                } else if (mode === 'switch') {
+                    selectorsHubSwitch.style.display = 'grid';
+                    selectorsRouter.style.display = 'none';
+                    hubInfo.style.display = 'none';
+                    switchTable.style.display = 'block';
+                    routerTable.style.display = 'none';
+                    document.getElementById('dev-table-title').textContent = "📋 Bảng Địa Chỉ MAC Switch";
+                    updateSwitchTableUI();
+                } else {
+                    selectorsHubSwitch.style.display = 'grid';
+                    selectorsRouter.style.display = 'none';
+                    hubInfo.style.display = 'block';
+                    switchTable.style.display = 'none';
+                    routerTable.style.display = 'none';
+                    document.getElementById('dev-table-title').textContent = "📋 Hub (Không có bảng lưu)";
+                }
+            }
+            
+            const consoleEl = document.getElementById('dev-console');
+            if (consoleEl) {
+                consoleEl.textContent = `Đã đổi chế độ sang mô phỏng: ${mode.toUpperCase()}. Nhấn "Gửi gói tin" để bắt đầu.`;
+            }
+            drawDevices();
+        }
+
+        function clearDeviceMemory() {
+            if (currentDeviceMode === 'switch') {
+                switchMacTable = {};
+                updateSwitchTableUI();
+                document.getElementById('dev-console').textContent = "Đã xóa toàn bộ bộ nhớ bảng MAC của Switch.";
+            } else {
+                document.getElementById('dev-console').textContent = "Thiết bị này không có bộ nhớ động để xóa.";
+            }
+            drawDevices();
+        }
+
+        function updateSwitchTableUI() {
+            const tbody = document.getElementById('dev-switch-table-body');
+            if (!tbody) return;
+            const keys = Object.keys(switchMacTable);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 12px;">Bảng MAC trống. Hãy gửi gói tin để Switch học địa chỉ.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = keys.map(mac => {
+                const port = switchMacTable[mac];
+                return `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 6px; font-weight:700; color:var(--accent);">Port ${port}</td>
+                    <td style="padding: 6px; font-family:monospace;">${mac}:${mac}:${mac}:${mac} (PC ${mac})</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function drawDevices() {
+            const nodesWrapper = document.getElementById('dev-nodes-wrapper');
+            const svgCanvas = document.getElementById('dev-svg-canvas');
+            if (!nodesWrapper || !svgCanvas) return;
+
+            nodesWrapper.innerHTML = '';
+            svgCanvas.innerHTML = '';
+
+            const isRouterMode = currentDeviceMode === 'router';
+            const key = isRouterMode ? 'router' : 'hub_switch';
+            const coords = devCoordinates[key];
+            const links = devLinks[key];
+
+            // If Router mode, draw the dashed network boundary zones
+            if (isRouterMode) {
+                // Zone LAN A
+                const zoneA = document.createElement('div');
+                zoneA.className = 'dev-subnet-zone lan-a';
+                zoneA.style.left = '50px';
+                zoneA.style.top = '60px';
+                zoneA.style.width = '290px';
+                zoneA.style.height = '380px';
+                zoneA.innerHTML = '<span>LAN A (192.168.1.0/24)</span>';
+                nodesWrapper.appendChild(zoneA);
+
+                // Zone LAN B
+                const zoneB = document.createElement('div');
+                zoneB.className = 'dev-subnet-zone lan-b';
+                zoneB.style.left = '440px';
+                zoneB.style.top = '60px';
+                zoneB.style.width = '290px';
+                zoneB.style.height = '380px';
+                zoneB.innerHTML = '<span>LAN B (10.0.0.0/24)</span>';
+                nodesWrapper.appendChild(zoneB);
+            }
+
+            // 1. Draw SVG lines
+            links.forEach(link => {
+                const nodeU = coords[link.u];
+                const nodeV = coords[link.v];
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", nodeU.x);
+                line.setAttribute("y1", nodeU.y);
+                line.setAttribute("x2", nodeV.x);
+                line.setAttribute("y2", nodeV.y);
+                line.setAttribute("class", "dev-cable");
+                line.setAttribute("id", `dev-cable-${link.u}-${link.v}`);
+                svgCanvas.appendChild(line);
+
+                // If Switch connected to Router in Router mode, draw Interface Label
+                if (link.label) {
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("x", (nodeU.x + nodeV.x) / 2);
+                    text.setAttribute("y", (nodeU.y + nodeV.y) / 2 - 10);
+                    text.setAttribute("fill", "var(--text-muted)");
+                    text.setAttribute("font-size", "10px");
+                    text.setAttribute("text-anchor", "middle");
+                    text.textContent = link.label;
+                    svgCanvas.appendChild(text);
+                }
+            });
+
+            // 2. Draw Node Circles
+            Object.keys(coords).forEach(nodeId => {
+                const node = coords[nodeId];
+                const nodeDiv = document.createElement('div');
+                nodeDiv.id = `dev-node-${nodeId}`;
+                
+                let deviceClass = 'active-pc';
+                let iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+
+                if (node.isRouter) {
+                    deviceClass = 'active-router';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v20M2 12h20M6 6l12 12M18 6L6 18"></path></svg>`;
+                } else if (node.isSwitch || (node.isCenter && currentDeviceMode === 'switch')) {
+                    deviceClass = 'active-switch';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M7 12h10M12 7v10M9 9l6 6M15 9l-6 6"></path></svg>`;
+                } else if (node.isCenter && currentDeviceMode === 'hub') {
+                    deviceClass = 'active-pc';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="6" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="18" cy="12" r="2"></circle></svg>`;
+                }
+
+                nodeDiv.className = `dev-node-el ${deviceClass}`;
+                nodeDiv.style.left = `${node.x}px`;
+                nodeDiv.style.top = `${node.y}px`;
+
+                let subTextHtml = '';
+                if (node.ip) {
+                    subTextHtml = `<div class="dev-node-ip">${node.ip}</div>`;
+                } else if (node.mac) {
+                    subTextHtml = `<div class="dev-node-ip">MAC: ${node.mac}</div>`;
+                }
+
+                let label = node.label;
+                if (node.isCenter) {
+                    label = currentDeviceMode === 'hub' ? "Hub Tầng 1" : "Switch Tầng 2";
+                }
+
+                nodeDiv.innerHTML = `
+                    <div class="dev-icon-box">
+                        ${iconSvg}
+                    </div>
+                    <div class="dev-node-label">${label}</div>
+                    ${subTextHtml}
+                `;
+                nodesWrapper.appendChild(nodeDiv);
+            });
+        }
+
+        async function animateDevPacket(packetIndex, startX, startY, endX, endY, speedMs = 500) {
+            const p = document.getElementById(`dev-packet-${packetIndex}`);
+            if (!p) return;
+            
+            p.style.display = 'block';
+            p.style.left = `${startX}px`;
+            p.style.top = `${startY}px`;
+            
+            void p.offsetWidth;
+            
+            p.style.transition = `all ${speedMs}ms linear`;
+            p.style.left = `${endX}px`;
+            p.style.top = `${endY}px`;
+            
+            await sleep(speedMs + 50);
+            p.style.display = 'none';
+        }
+
+        async function runDeviceSimulation() {
+            const consoleDiv = document.getElementById('dev-console');
+            if (currentDeviceMode === 'router') {
+                await runRouterSimulation(consoleDiv);
+            } else if (currentDeviceMode === 'switch') {
+                await runSwitchSimulation(consoleDiv);
+            } else {
+                await runHubSimulation(consoleDiv);
+            }
+        }
+
+        async function runHubSimulation(consoleDiv) {
+            const start = document.getElementById('dev-sender').value;
+            const end = document.getElementById('dev-receiver').value;
+            
+            if (start === end) {
+                alert("Vui lòng chọn Node nhận khác Node gửi!");
+                return;
+            }
+
+            document.querySelectorAll('.dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver', 'highlight-ignore');
+            });
+
+            document.getElementById(`dev-node-${start}`).classList.add('highlight-sender');
+            consoleDiv.innerHTML = `🏁 [Hub] Node ${start} gửi tín hiệu tới Node ${end}...`;
+            
+            const coords = devCoordinates.hub_switch;
+            
+            const cableStart = document.getElementById(`dev-cable-${start}-CTR`);
+            if (cableStart) cableStart.classList.add('active');
+            await animateDevPacket(0, coords[start].x, coords[start].y, coords.CTR.x, coords.CTR.y, 600);
+            if (cableStart) cableStart.classList.remove('active');
+            
+            consoleDiv.innerHTML = `➔ Hub nhận tín hiệu trên Cổng ${coords[start].port}. Vì Hub là thiết bị Tầng 1, nó không thể đọc địa chỉ MAC.<br>➔ Hub nhân bản tín hiệu ra tất cả các cổng còn lại...`;
+            
+            const targetNodes = ['A', 'B', 'C', 'D'].filter(n => n !== start);
+            
+            targetNodes.forEach(n => {
+                const cable = document.getElementById(`dev-cable-${n}-CTR`);
+                if (cable) cable.classList.add('active');
+            });
+
+            const anims = targetNodes.map((n, idx) => {
+                return animateDevPacket(idx, coords.CTR.x, coords.CTR.y, coords[n].x, coords[n].y, 600);
+            });
+
+            await Promise.all(anims);
+
+            targetNodes.forEach(n => {
+                const cable = document.getElementById(`dev-cable-${n}-CTR`);
+                if (cable) cable.classList.remove('active');
+            });
+
+            targetNodes.forEach(n => {
+                const el = document.getElementById(`dev-node-${n}`);
+                if (n === end) {
+                    el.classList.add('highlight-receiver');
+                } else {
+                    el.classList.add('highlight-ignore');
+                }
+            });
+
+            consoleDiv.innerHTML = `<span style='color:var(--success); font-weight:700;'>✔️ Hoàn thành!</span><br>➔ Node ${end} thấy địa chỉ MAC đích trùng khớp nên nhận gói tin.<br>➔ Các Node còn lại (${targetNodes.filter(n => n !== end).join(', ')}) bỏ qua gói tin vì không khớp MAC.`;
+        }
+
+        async function runSwitchSimulation(consoleDiv) {
+            const start = document.getElementById('dev-sender').value;
+            const end = document.getElementById('dev-receiver').value;
+
+            if (start === end) {
+                alert("Vui lòng chọn Node nhận khác Node gửi!");
+                return;
+            }
+
+            document.querySelectorAll('.dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver', 'highlight-ignore');
+            });
+
+            document.getElementById(`dev-node-${start}`).classList.add('highlight-sender');
+            consoleDiv.innerHTML = `🏁 [Switch] Node ${start} (MAC: ${start}) gửi dữ liệu tới Node ${end} (MAC: ${end})...`;
+
+            const coords = devCoordinates.hub_switch;
+            
+            const cableStart = document.getElementById(`dev-cable-${start}-CTR`);
+            if (cableStart) cableStart.classList.add('active');
+            await animateDevPacket(0, coords[start].x, coords[start].y, coords.CTR.x, coords.CTR.y, 600);
+            if (cableStart) cableStart.classList.remove('active');
+
+            const isFirstTimeSource = !switchMacTable[start];
+            switchMacTable[start] = coords[start].port;
+            updateSwitchTableUI();
+            
+            let learnLog = `➔ Switch nhận gói tin từ Cổng ${coords[start].port}. Đọc MAC nguồn là <strong>${start}</strong>.`;
+            if (isFirstTimeSource) {
+                learnLog += ` <span style="color:var(--success); font-weight:700;">[ĐÃ HỌC] Ghi bảng MAC: Port ${coords[start].port} = MAC ${start}</span>`;
+            } else {
+                learnLog += ` (Địa chỉ đã được lưu trong bảng MAC)`;
+            }
+            consoleDiv.innerHTML = learnLog;
+            await sleep(1500);
+
+            const knowsReceiver = !!switchMacTable[end];
+            if (!knowsReceiver) {
+                consoleDiv.innerHTML = `➔ Switch tra bảng MAC tìm địa chỉ nhận <strong>${end}</strong>... <strong><span style="color:var(--warning);">KHÔNG THẤY!</span></strong><br>➔ Switch thực hiện **Flooding (Phát ngập)** ra tất cả các cổng còn lại...`;
+                
+                const targetNodes = ['A', 'B', 'C', 'D'].filter(n => n !== start);
+                targetNodes.forEach(n => {
+                    const cable = document.getElementById(`dev-cable-${n}-CTR`);
+                    if (cable) cable.classList.add('active');
+                });
+
+                const anims = targetNodes.map((n, idx) => {
+                    return animateDevPacket(idx, coords.CTR.x, coords.CTR.y, coords[n].x, coords[n].y, 600);
+                });
+                await Promise.all(anims);
+
+                targetNodes.forEach(n => {
+                    const cable = document.getElementById(`dev-cable-${n}-CTR`);
+                    if (cable) cable.classList.remove('active');
+                    
+                    const el = document.getElementById(`dev-node-${n}`);
+                    if (n === end) {
+                        el.classList.add('highlight-receiver');
+                    } else {
+                        el.classList.add('highlight-ignore');
+                    }
+                });
+
+                consoleDiv.innerHTML = `<span style='color:var(--success); font-weight:700;'>✔️ Flooding thành công!</span><br>➔ Node ${end} nhận diện đúng MAC nên nhận tin. Các máy khác bỏ qua.<br>➔ <em>Mẹo: Cát phản hồi từ ${end} sẽ giúp Switch học luôn cổng của ${end}. Hãy bấm gửi tin lại để thấy sự khác biệt!</em>`;
+                
+                switchMacTable[end] = coords[end].port;
+                setTimeout(() => {
+                    updateSwitchTableUI();
+                    drawDevices();
+                }, 1000);
+
+            } else {
+                const targetPort = switchMacTable[end];
+                consoleDiv.innerHTML = `➔ Switch tra bảng MAC tìm thấy địa chỉ đích <strong>${end}</strong> tại <strong>Port ${targetPort}</strong>.<br>➔ Switch chỉ chuyển tiếp gói tin duy nhất tới Cổng ${targetPort}...`;
+                await sleep(1000);
+
+                const cableDest = document.getElementById(`dev-cable-${end}-CTR`);
+                if (cableDest) cableDest.classList.add('active');
+                
+                await animateDevPacket(0, coords.CTR.x, coords.CTR.y, coords[end].x, coords[end].y, 600);
+                
+                if (cableDest) cableDest.classList.remove('active');
+
+                document.getElementById(`dev-node-${end}`).classList.add('highlight-receiver');
+                
+                ['A', 'B', 'C', 'D'].forEach(n => {
+                    if (n !== start && n !== end) {
+                        document.getElementById(`dev-node-${n}`).classList.add('highlight-ignore');
+                    }
+                });
+
+                consoleDiv.innerHTML = `<span style='color:var(--success); font-weight:700;'>✔️ Gửi tin Unicast thành công!</span><br>➔ Switch đã định tuyến chính xác từ Port ${switchMacTable[start]} sang Port ${targetPort} mà không làm ảnh hưởng tới các máy khác!`;
+            }
+        }
+
+        async function runRouterSimulation(consoleDiv) {
+            const start = document.getElementById('dev-router-sender').value;
+            const end = document.getElementById('dev-router-receiver').value;
+
+            if (start === end) {
+                alert("Vui lòng chọn máy nhận khác máy gửi!");
+                return;
+            }
+
+            document.querySelectorAll('.dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver', 'highlight-ignore');
+            });
+
+            document.getElementById(`dev-node-${start}`).classList.add('highlight-sender');
+            
+            const coords = devCoordinates.router;
+            const senderNode = coords[start];
+            const receiverNode = coords[end];
+
+            const isSameLAN = (senderNode.isLAN_A && receiverNode.isLAN_A) || (senderNode.isLAN_B && receiverNode.isLAN_B);
+
+            if (isSameLAN) {
+                const localSwitch = senderNode.isLAN_A ? 'SA' : 'SB';
+                consoleDiv.innerHTML = `🏁 [Router] ${start} (${senderNode.ip}) gửi tới ${end} (${receiverNode.ip}).<br>➔ Thiết bị nhận thấy IP đích thuộc cùng Subnet nội bộ. Gửi thẳng qua Switch nội bộ...`;
+                
+                let cable = document.getElementById(`dev-cable-${start}-${localSwitch}`);
+                if (cable) cable.classList.add('active');
+                await animateDevPacket(0, senderNode.x, senderNode.y, coords[localSwitch].x, coords[localSwitch].y, 500);
+                if (cable) cable.classList.remove('active');
+
+                cable = document.getElementById(`dev-cable-${end}-${localSwitch}`);
+                if (cable) cable.classList.add('active');
+                await animateDevPacket(0, coords[localSwitch].x, coords[localSwitch].y, receiverNode.x, receiverNode.y, 500);
+                if (cable) cable.classList.remove('active');
+
+                document.getElementById(`dev-node-${end}`).classList.add('highlight-receiver');
+                consoleDiv.innerHTML = `<span style='color:var(--success); font-weight:700;'>✔️ Thành công!</span> Gói tin truyền nội bộ LAN hoàn toàn. Router R1 không can thiệp.`;
+            } else {
+                consoleDiv.innerHTML = `🏁 [Router] ${start} (${senderNode.ip}) gửi tới ${end} (${receiverNode.ip}).<br>➔ IP đích khác mạng! PC ${start} đóng gói tin và gửi tới **Default Gateway (Router)**...`;
+                await sleep(1500);
+
+                const srcSwitch = senderNode.isLAN_A ? 'SA' : 'SB';
+                const destSwitch = receiverNode.isLAN_A ? 'SA' : 'SB';
+                const gatewayInterface = senderNode.isLAN_A ? 'G0/0' : 'G0/1';
+                const destInterface = receiverNode.isLAN_A ? 'G0/0' : 'G0/1';
+
+                let cable = document.getElementById(`dev-cable-${start}-${srcSwitch}`);
+                if (cable) cable.classList.add('active');
+                await animateDevPacket(0, senderNode.x, senderNode.y, coords[srcSwitch].x, coords[srcSwitch].y, 450);
+                if (cable) cable.classList.remove('active');
+
+                cable = document.getElementById(`dev-cable-${srcSwitch}-RT`);
+                if (cable) cable.classList.add('active');
+                await animateDevPacket(0, coords[srcSwitch].x, coords[srcSwitch].y, coords.RT.x, coords.RT.y, 450);
+                if (cable) cable.classList.remove('active');
+
+                consoleDiv.innerHTML = `➔ Router nhận gói tin tại cổng **${gatewayInterface}**. Đọc địa chỉ IP đích: <strong>${receiverNode.ip}</strong>.<br>➔ Router tra bảng định tuyến (Routing Table) tìm thấy mạng khớp là **${receiverNode.isLAN_A ? '192.168.1.0/24' : '10.0.0.0/24'}** kết nối tại cổng **${destInterface}**...`;
+                await sleep(2000);
+
+                cable = document.getElementById(`dev-cable-${destSwitch}-RT`);
+                if (cable) cable.classList.add('active');
+                await animateDevPacket(0, coords.RT.x, coords.RT.y, coords[destSwitch].x, coords[destSwitch].y, 450);
+                if (cable) cable.classList.remove('active');
+
+                cable = document.getElementById(`dev-cable-${end}-${destSwitch}`);
+                if (cable) cable.classList.add('active');
+                await animateDevPacket(0, coords[destSwitch].x, coords[destSwitch].y, receiverNode.x, receiverNode.y, 450);
+                if (cable) cable.classList.remove('active');
+
+                document.getElementById(`dev-node-${end}`).classList.add('highlight-receiver');
+                consoleDiv.innerHTML = `<span style='color:var(--success); font-weight:700;'>✔️ Định tuyến thành công!</span><br>➔ Router đã định tuyến gói tin thành công từ mạng LAN này sang mạng LAN kia dựa trên địa chỉ IP đích!`;
+            }
         }
 
         function sleep(ms) {
