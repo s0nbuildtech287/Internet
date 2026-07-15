@@ -1,0 +1,114 @@
+<p class="section-desc">Phòng thí nghiệm ARP: Quan sát nguyên lý hoạt động phân giải địa chỉ MAC từ IP. Nhập địa chỉ gửi/nhận nội bộ và xem cách các gói tin ARP Request Broadcast (phát ngập qua Switch) và ARP Reply Unicast hoạt động để xây dựng bảng ARP Cache.</p>
+
+<div class="playground-layout" style="grid-template-columns: 340px 1fr; gap: 28px; display: grid;">
+    <!-- Left Control Panel -->
+    <div class="pg-control-panel" style="gap: 16px; display: flex; flex-direction: column;">
+        <!-- Configuration Card -->
+        <div class="pg-panel">
+            <div class="panel-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                Thiết Lập Mô Phỏng ARP
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div class="input-group">
+                    <label>Node Gửi</label>
+                    <select id="arp-sender" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px; font-size:12px;">
+                        <option value="A">Node A (MAC: AA)</option>
+                        <option value="B">Node B (MAC: BB)</option>
+                        <option value="C">Node C (MAC: CC)</option>
+                        <option value="D">Node D (MAC: DD)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Node Nhận</label>
+                    <select id="arp-receiver" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:6px; font-size:12px;">
+                        <option value="C" selected>Node C (MAC: CC)</option>
+                        <option value="A">Node A (MAC: AA)</option>
+                        <option value="B">Node B (MAC: BB)</option>
+                        <option value="D">Node D (MAC: DD)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row-btn" style="margin-top: 15px;">
+                <button class="btn" onclick="runArpLabSimulation()" style="flex:1; font-size:13px; font-weight:700;">Phân Giải ARP</button>
+                <button class="btn btn-outline" onclick="clearArpLabMemory()" style="padding: 10px 14px; font-size:13px;">Xóa Cache</button>
+            </div>
+        </div>
+
+        <!-- ARP Cache Table -->
+        <div class="pg-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 180px; max-height: 220px; overflow: hidden;">
+            <div class="panel-heading" style="color:var(--success); font-size: 13px; margin-bottom: 8px;">
+                📋 Bảng ARP Cache của các Host
+            </div>
+            <div class="scan-table-container" style="flex: 1; overflow-y: auto;">
+                <table class="scan-table" style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05); text-align: left; position: sticky; top:0; background:#1b202e;">
+                            <th style="padding: 4px;">Thiết bị</th>
+                            <th style="padding: 4px;">Địa chỉ IP</th>
+                            <th style="padding: 4px;">Địa chỉ MAC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arp-hosts-tbody">
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px 0;">ARP Cache trống. Hãy chạy mô phỏng phân giải.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Switch MAC Table -->
+        <div class="pg-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 150px; max-height: 180px; overflow: hidden;">
+            <div class="panel-heading" style="color:var(--accent); font-size: 13px; margin-bottom: 8px;">
+                🔌 MAC Address Table của Switch
+            </div>
+            <div class="scan-table-container" style="flex: 1; overflow-y: auto;">
+                <table class="scan-table" style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05); text-align: left; position: sticky; top:0; background:#1b202e;">
+                            <th style="padding: 4px;">Cổng (Port)</th>
+                            <th style="padding: 4px;">Địa chỉ MAC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arp-switch-tbody">
+                        <tr>
+                            <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 20px 0;">Switch MAC Table trống.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Console logs -->
+        <div class="pg-panel" style="display: flex; flex-direction: column;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight:700;">Nhật ký mô phỏng (ARP Console):</div>
+            <div id="arp-console" style="background:#090d16; border-radius: 6px; font-family:'JetBrains Mono',monospace; font-size:11px; padding: 10px; color:#a3b8cc; height:120px; overflow-y:auto; line-height:1.45; border:1px solid rgba(255,255,255,0.03);">Hệ thống sẵn sàng. Chọn một máy gửi và một máy nhận, sau đó bấm "Phân giải ARP".</div>
+        </div>
+    </div>
+
+    <!-- Right Graphic Canvas Area -->
+    <div class="card" style="position: relative; height: 580px; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; background: #0b111e; border: 1px solid rgba(255,255,255,0.03);">
+        <div style="position: absolute; top: 16px; left: 16px; font-size: 12.5px; color: var(--text-muted); z-index: 10;">
+            💡 <em>Mạng LAN: PC A, B, C, D kết nối Star Topology thông qua Switch trung tâm.</em>
+        </div>
+        
+        <!-- SVG lines canvas for connections -->
+        <svg id="arp-svg-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;">
+            <!-- Connection lines will be dynamically generated -->
+        </svg>
+
+        <!-- Dynamic pool of packets for visual flight -->
+        <div class="dev-packet-dot" id="arp-packet-0" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+        <div class="dev-packet-dot" id="arp-packet-1" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+        <div class="dev-packet-dot" id="arp-packet-2" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+        <div class="dev-packet-dot" id="arp-packet-3" style="display: none; position: absolute; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 12px var(--accent); transition: all 0.5s linear;"></div>
+
+        <!-- Node Elements Wrapper -->
+        <div id="arp-nodes-wrapper" style="position: absolute; width: 100%; height: 100%; z-index: 5; pointer-events: none;">
+            <!-- Node circles generated here -->
+        </div>
+    </div>
+</div>

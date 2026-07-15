@@ -8,6 +8,8 @@ import os
 import subprocess
 import re
 import uuid
+import struct
+import binascii
 
 PORT = 8080
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages")
@@ -580,6 +582,8 @@ class APIServerHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response(self.handle_api_traceroute_start(params))
         elif self.path == "/api/traceroute/stop":
             self.send_json_response(self.handle_api_traceroute_stop())
+        elif self.path == "/api/encapsulate":
+            self.send_json_response(self.handle_api_encapsulate(params))
         else:
             self.send_error(404, "API endpoint not found")
 
@@ -826,6 +830,146 @@ class APIServerHandler(http.server.SimpleHTTPRequestHandler):
             except:
                 pass
         return {"status": "success", "message": "Đã dừng tiến trình traceroute"}
+
+    def handle_api_encapsulate(self, params):
+        message = params.get("message", "Hello World").strip()
+        protocol = params.get("protocol", "http").lower()
+        
+        # 1. Application Layer (L7)
+        if protocol == "http":
+            app_data = f"GET /index.html HTTP/1.1\r\nHost: local\r\n\r\n{message}"
+            app_title = "HTTP Request"
+        elif protocol == "smtp":
+            app_data = f"MAIL FROM:<sender@fpt.vn> RCPT TO:<dest@google.com>\r\n{message}"
+            app_title = "SMTP Protocol Data"
+        else:
+            app_data = f"DATA: {message}"
+            app_title = "Plain Text Data"
+            
+        app_bytes = app_data.encode('utf-8')
+        app_hex = app_bytes.hex()
+        
+        # 2. Transport Layer (L4) - TCP Header
+        src_port = 54321
+        dst_port = 80 if protocol == "http" else (25 if protocol == "smtp" else 12345)
+        seq_num = 1000
+        ack_num = 0
+        offset_res = (5 << 4)  # 5 * 32 bits = 20 bytes
+        flags = 0x18  # PSH, ACK
+        window = 64240
+        checksum = 0
+        urg_ptr = 0
+        
+        tcp_header = struct.pack('!HHIIBBHHH', src_port, dst_port, seq_num, ack_num, offset_res, flags, window, checksum, urg_ptr)
+        segment_bytes = tcp_header + app_bytes
+        segment_hex = segment_bytes.hex()
+        tcp_header_hex = tcp_header.hex()
+        
+        # 3. Network Layer (L3) - IPv4 Header
+        version_ihl = (4 << 4) | 5
+        tos = 0
+        tot_len = 20 + len(segment_bytes)
+        ip_id = 0x1234
+        flags_fragment = 0x4000
+        ttl = 64
+        proto = 6  # TCP
+        ip_checksum = 0
+        src_ip = "192.168.1.10"
+        dst_ip = "8.8.8.8"
+        src_ip_bytes = socket.inet_aton(src_ip)
+        dst_ip_bytes = socket.inet_aton(dst_ip)
+        
+        ip_header = struct.pack('!BBHHHBBH4s4s', version_ihl, tos, tot_len, ip_id, flags_fragment, ttl, proto, ip_checksum, src_ip_bytes, dst_ip_bytes)
+        packet_bytes = ip_header + segment_bytes
+        packet_hex = packet_bytes.hex()
+        ip_header_hex = ip_header.hex()
+        
+        # 4. Data Link Layer (L2) - Ethernet Header + FCS Trailer
+        src_mac_str = "AABBCCDDEEFF"
+        dst_mac_str = "001122334455"
+        src_mac = binascii.unhexlify(src_mac_str)
+        dst_mac = binascii.unhexlify(dst_mac_str)
+        ether_type = 0x0800
+        
+        eth_header = struct.pack('!6s6sH', dst_mac, src_mac, ether_type)
+        fcs_value = binascii.crc32(eth_header + packet_bytes) & 0xffffffff
+        fcs = struct.pack('!I', fcs_value)
+        
+        frame_bytes = eth_header + packet_bytes + fcs
+        frame_hex = frame_bytes.hex()
+        eth_header_hex = eth_header.hex()
+        fcs_hex = fcs.hex()
+        
+        # 5. Physical Layer (L1) - Bitstream
+        bitstream = "".join(f"{b:08b}" for b in frame_bytes)
+        
+        return {
+            "status": "success",
+            "message": message,
+            "protocol": protocol,
+            "layers": {
+                "l7": {
+                    "title": app_title,
+                    "raw_data": app_data,
+                    "hex": app_hex,
+                    "length": len(app_bytes)
+                },
+                "l4": {
+                    "title": "TCP Segment",
+                    "hex": segment_hex,
+                    "header_hex": tcp_header_hex,
+                    "length": len(segment_bytes),
+                    "fields": [
+                        {"name": "Source Port (Cổng nguồn)", "bytes": 2, "value": src_port, "hex": f"0x{src_port:04X}", "desc": "Cổng kết nối của Client để nhận phản hồi"},
+                        {"name": "Destination Port (Cổng đích)", "bytes": 2, "value": dst_port, "hex": f"0x{dst_port:04X}", "desc": f"Cổng dịch vụ {protocol.upper()} trên Server"},
+                        {"name": "Sequence Number (Số thứ tự)", "bytes": 4, "value": seq_num, "hex": f"0x{seq_num:08X}", "desc": "Được dùng để tái lắp ráp các gói dữ liệu theo đúng thứ tự"},
+                        {"name": "Acknowledgment Number (Số xác nhận)", "bytes": 4, "value": ack_num, "hex": f"0x{ack_num:08X}", "desc": "Xác nhận đã nhận gói tin trước đó (đây là gói tin đầu nên bằng 0)"},
+                        {"name": "Data Offset (Độ dài Header)", "bytes": 1, "value": 5, "hex": "0x50", "desc": "5 từ 32-bit = 20 byte chiều dài TCP Header"},
+                        {"name": "Flags (Cờ điều khiển)", "bytes": 1, "value": flags, "hex": f"0x{flags:02X}", "desc": "Cờ PSH-ACK (Đẩy dữ liệu và Xác nhận)"},
+                        {"name": "Window Size (Kích thước cửa sổ)", "bytes": 2, "value": window, "hex": f"0x{window:04X}", "desc": "Khả năng đệm nhận dữ liệu của thiết bị"},
+                        {"name": "Checksum (Mã kiểm tra TCP)", "bytes": 2, "value": checksum, "hex": "0x0000", "desc": "Mã kiểm tra lỗi gói TCP"},
+                        {"name": "Urgent Pointer (Con trỏ khẩn)", "bytes": 2, "value": urg_ptr, "hex": "0x0000", "desc": "Đánh dấu vùng dữ liệu khẩn cấp (không dùng)"}
+                    ]
+                },
+                "l3": {
+                    "title": "IP Packet",
+                    "hex": packet_hex,
+                    "header_hex": ip_header_hex,
+                    "length": len(packet_bytes),
+                    "fields": [
+                        {"name": "Version & IHL (Phiên bản & Độ dài)", "bytes": 1, "value": version_ihl, "hex": f"0x{version_ihl:02X}", "desc": "IPv4 (4) và Header dài 20 byte (5 từ)"},
+                        {"name": "TOS (Loại dịch vụ)", "bytes": 1, "value": tos, "hex": "0x00", "desc": "Độ ưu tiên gói tin (mặc định = 0)"},
+                        {"name": "Total Length (Tổng độ dài)", "bytes": 2, "value": tot_len, "hex": f"0x{tot_len:04X}", "desc": f"Tổng kích thước của IP Packet bao gồm cả TCP Segment ({tot_len} byte)"},
+                        {"name": "Identification (Định danh)", "bytes": 2, "value": ip_id, "hex": f"0x{ip_id:04X}", "desc": "ID nhận diện gói tin phục vụ phân mảnh"},
+                        {"name": "Flags & Frag Offset (Cờ phân mảnh)", "bytes": 2, "value": flags_fragment, "hex": f"0x{flags_fragment:04X}", "desc": "Cờ DF (Don't Fragment) - Không phân mảnh gói tin"},
+                        {"name": "TTL (Thời gian sống)", "bytes": 1, "value": ttl, "hex": f"0x{ttl:02X}", "desc": "Số hop router tối đa gói tin có thể đi qua trước khi bị hủy"},
+                        {"name": "Protocol (Giao thức tầng trên)", "bytes": 1, "value": proto, "hex": "0x06", "desc": "Mã 6 chỉ định giao thức chứa bên trong là TCP"},
+                        {"name": "Header Checksum (Mã kiểm tra IP)", "bytes": 2, "value": ip_checksum, "hex": "0x0000", "desc": "Kiểm tra lỗi cho riêng phần IP Header"},
+                        {"name": "Source IP Address (IP nguồn)", "bytes": 4, "value": src_ip, "hex": f"0x{binascii.hexlify(src_ip_bytes).decode().upper()}", "desc": f"Địa chỉ IP máy Client ({src_ip})"},
+                        {"name": "Destination IP Address (IP đích)", "bytes": 4, "value": dst_ip, "hex": f"0x{binascii.hexlify(dst_ip_bytes).decode().upper()}", "desc": f"Địa chỉ IP máy Server ({dst_ip})"}
+                    ]
+                },
+                "l2": {
+                    "title": "Ethernet Frame",
+                    "hex": frame_hex,
+                    "header_hex": eth_header_hex,
+                    "trailer_hex": fcs_hex,
+                    "length": len(frame_bytes),
+                    "fields": [
+                        {"name": "Destination MAC (MAC đích)", "bytes": 6, "value": "00:11:22:33:44:55", "hex": f"0x{dst_mac_str.upper()}", "desc": "MAC của Default Gateway / Router để đi ra Internet"},
+                        {"name": "Source MAC (MAC nguồn)", "bytes": 6, "value": "AA:BB:CC:DD:EE:FF", "hex": f"0x{src_mac_str.upper()}", "desc": "MAC vật lý của card mạng máy gửi"},
+                        {"name": "EtherType (Loại giao thức)", "bytes": 2, "value": ether_type, "hex": "0x0800", "desc": "Chỉ thị gói tin chứa bên trong là IPv4"},
+                        {"name": "Frame Check Sequence (Mã kiểm tra FCS)", "bytes": 4, "value": fcs_value, "hex": f"0x{fcs_value:08X}", "desc": "Mã CRC32 được tính toán tự động từ Ethernet Header + IP Packet để phát hiện sai sót bit trên đường truyền"}
+                    ]
+                },
+                "l1": {
+                    "title": "Physical Bitstream",
+                    "bitstream": bitstream,
+                    "length_bits": len(bitstream)
+                }
+            }
+        }
+
 
 
 if __name__ == "__main__":

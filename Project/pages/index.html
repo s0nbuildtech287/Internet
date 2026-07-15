@@ -1454,6 +1454,14 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"></path><path d="M18 8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"></path></svg>
                 TCP vs UDP (Lab)
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-arp')" id="btn-tab-arp">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
+                Mô Phỏng ARP (Lab)
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-subnet')" id="btn-tab-subnet">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+                IP & Subnet (Lab)
+            </button>
         </div>
     </header>
 
@@ -1522,6 +1530,22 @@
                 <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab TCP vs UDP (Lab)...</p>
             </div>
         </section>
+        
+        <!-- ================= TAB 9: ARP SIMULATION LAB ================= -->
+        <section id="tab-arp" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Mô Phỏng ARP (Lab)...</p>
+            </div>
+        </section>
+        
+        <!-- ================= TAB 10: IP & SUBNET LAB ================= -->
+        <section id="tab-subnet" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab IP & Subnet (Lab)...</p>
+            </div>
+        </section>
 
     </main>
 
@@ -1574,13 +1598,17 @@
                 drawOsiStack();
             } else if (tabId === 'tab-socket') {
                 resetSkSimulation();
+            } else if (tabId === 'tab-arp') {
+                resetArpLabSimulation();
+            } else if (tabId === 'tab-subnet') {
+                initSubnetLab();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes, socketRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes, socketRes, arpRes, subnetRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
                     fetch('/tab-playground.html'),
@@ -1588,7 +1616,9 @@
                     fetch('/tab-topology.html'),
                     fetch('/tab-devices.html'),
                     fetch('/tab-osi.html'),
-                    fetch('/tab-socket.html')
+                    fetch('/tab-socket.html'),
+                    fetch('/tab-arp.html'),
+                    fetch('/tab-subnet.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
@@ -1599,6 +1629,8 @@
                 document.getElementById('tab-devices').innerHTML = await devicesRes.text();
                 document.getElementById('tab-osi').innerHTML = await osiRes.text();
                 document.getElementById('tab-socket').innerHTML = await socketRes.text();
+                document.getElementById('tab-arp').innerHTML = await arpRes.text();
+                document.getElementById('tab-subnet').innerHTML = await subnetRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
@@ -1613,6 +1645,10 @@
                     drawOsiStack();
                 } else if (document.getElementById('tab-socket').classList.contains('active')) {
                     resetSkSimulation();
+                } else if (document.getElementById('tab-arp').classList.contains('active')) {
+                    resetArpLabSimulation();
+                } else if (document.getElementById('tab-subnet').classList.contains('active')) {
+                    initSubnetLab();
                 }
             } catch (err) {
                 console.error("Lỗi khi tải các tệp giao diện con:", err);
@@ -3266,6 +3302,7 @@
         // ================= TAB 7: OSI SIMULATOR =================
         let osiState = 'idle'; // 'idle', 'encapsulating', 'ready_to_transmit', 'transmitting', 'deencapsulating', 'done'
         let osiRawData = "Hello World";
+        let osiEncapsulationData = null;
         
         const osiLayers = [
             { num: 7, name: "Application (Ứng dụng)", badge: "Data", protocol: "HTTP / SMTP", desc: "Tạo dữ liệu giao tiếp ứng dụng, gắn HTTP Request Header." },
@@ -3279,7 +3316,10 @@
 
         function setOsiMessageTemplate(type) {
             const input = document.getElementById('osi-msg-input');
+            const template = document.getElementById('osi-msg-template');
             if (!input) return;
+            if (template) template.value = type;
+            
             if (type === 'http') {
                 input.value = "GET /index.html HTTP/1.1";
             } else if (type === 'smtp') {
@@ -3340,65 +3380,189 @@
             
             const consoleEl = document.getElementById('osi-console');
             if (consoleEl) consoleEl.innerHTML = `Hệ thống đã reset. Nhập thông điệp và bấm "Đóng gói (Encap)".`;
+
+            // Reset hex interpreter display elements
+            const interpreterSection = document.getElementById('osi-hex-interpreter-section');
+            if (interpreterSection) interpreterSection.style.display = 'none';
+            const hexDisplay = document.getElementById('osi-hex-dump-display');
+            if (hexDisplay) hexDisplay.innerHTML = '';
+            const tbody = document.getElementById('osi-fields-interpreter-tbody');
+            if (tbody) tbody.innerHTML = '';
+
+            osiEncapsulationData = null;
+        }
+
+        function renderHexDump(hexString) {
+            const container = document.getElementById('osi-hex-dump-display');
+            if (!container) return;
+            
+            const bytes = [];
+            for (let i = 0; i < hexString.length; i += 2) {
+                bytes.push(hexString.substr(i, 2).toUpperCase());
+            }
+            
+            let html = '';
+            for (let i = 0; i < bytes.length; i += 16) {
+                const offset = i.toString(16).padStart(4, '0').toUpperCase();
+                const chunk = bytes.slice(i, i + 16);
+                const hexPart = chunk.join(' ');
+                const hexPadding = ' '.repeat(Math.max(0, 48 - hexPart.length));
+                
+                const asciiPart = chunk.map(b => {
+                    const charCode = parseInt(b, 16);
+                    if (charCode >= 32 && charCode <= 126) {
+                        return String.fromCharCode(charCode);
+                    }
+                    return '.';
+                }).join('');
+                
+                html += `${offset}  ${hexPart}${hexPadding}  |${asciiPart}|\n`;
+            }
+            container.innerHTML = html;
+        }
+
+        function updateInterpreterTable(maxLayerNum) {
+            const tbody = document.getElementById('osi-fields-interpreter-tbody');
+            const section = document.getElementById('osi-hex-interpreter-section');
+            if (!tbody || !section) return;
+            
+            section.style.display = 'grid';
+            
+            let html = '';
+            const layersToDisplay = [
+                { key: 'l2', name: 'Ethernet Link Layer (L2)', num: 2, color: '#10b981' },
+                { key: 'l3', name: 'IP Network Layer (L3)', num: 3, color: '#06b6d4' },
+                { key: 'l4', name: 'TCP Transport Layer (L4)', num: 4, color: '#3b82f6' },
+                { key: 'l7', name: 'Application Payload (L7)', num: 7, color: '#ec4899' }
+            ];
+            
+            layersToDisplay.forEach(layer => {
+                if (layer.num >= maxLayerNum && osiEncapsulationData && osiEncapsulationData.layers[layer.key]) {
+                    const layerData = osiEncapsulationData.layers[layer.key];
+                    if (layer.key === 'l7') {
+                        html += `
+                            <tr style="background: rgba(236, 72, 153, 0.08); font-weight: 700; color: #ec4899;">
+                                <td colspan="4" style="padding: 6px 12px; border-bottom: 1px solid rgba(236, 72, 153, 0.15);">${layer.name}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 12px; font-weight:600; color:#fff;">Dữ liệu Ứng dụng</td>
+                                <td style="padding: 8px 12px; font-family: monospace;">${layerData.length} B</td>
+                                <td style="padding: 8px 12px; font-family: monospace; word-break: break-all; max-width: 150px;">"${osiRawData}"</td>
+                                <td style="padding: 8px 12px; color: var(--text-muted);">${layerData.title} (dữ liệu thô UTF-8)</td>
+                            </tr>
+                        `;
+                    } else {
+                        html += `
+                            <tr style="background: ${layer.color}15; font-weight: 700; color: ${layer.color};">
+                                <td colspan="4" style="padding: 6px 12px; border-bottom: 1px solid ${layer.color}30;">${layer.name}</td>
+                            </tr>
+                        `;
+                        layerData.fields.forEach(field => {
+                            html += `
+                                <tr>
+                                    <td style="padding: 8px 12px; font-weight:600; color:#fff;">${field.name}</td>
+                                    <td style="padding: 8px 12px; font-family: monospace;">${field.bytes} B</td>
+                                    <td style="padding: 8px 12px; font-family: monospace; color: ${layer.color}; font-weight: 700;">${field.hex}</td>
+                                    <td style="padding: 8px 12px; color: var(--text-muted);">${field.desc}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+            });
+            tbody.innerHTML = html;
         }
 
         async function startOsiEncapsulation() {
             const msgInput = document.getElementById('osi-msg-input');
+            const msgTemplate = document.getElementById('osi-msg-template');
             if (!msgInput) return;
             osiRawData = msgInput.value.trim() || "Hello World";
-            osiState = 'encapsulating';
+            const protocol = msgTemplate ? msgTemplate.value : 'text';
             
+            osiState = 'encapsulating';
             const encBtn = document.getElementById('btn-osi-encap');
             if (encBtn) encBtn.disabled = true;
             
             const consoleEl = document.getElementById('osi-console');
+            consoleEl.innerHTML = `<strong>[Python Backend]</strong> Đang khởi tạo luồng đóng gói nhị phân thật bằng struct...`;
             
+            try {
+                const response = await fetch('/api/encapsulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: osiRawData, protocol: protocol })
+                });
+                osiEncapsulationData = await response.json();
+            } catch (err) {
+                console.error("Lỗi khi gọi API đóng gói:", err);
+                consoleEl.innerHTML = `<span style="color:var(--error);">⚠️ Không thể kết nối tới Backend! Vui lòng kiểm tra index.py</span>`;
+                if (encBtn) encBtn.disabled = false;
+                return;
+            }
+            
+            await sleep(800);
+
             // 1. Layer 7: Application
-            consoleEl.innerHTML = `<strong>[Layer 7 - Application]</strong>: Đọc thông điệp gửi đi: "${osiRawData}". Gắn Application Header (HTTP/SMTP)...`;
+            const l7Data = osiEncapsulationData.layers.l7;
+            consoleEl.innerHTML = `<strong>[Layer 7 - Application]</strong>: Nhận dạng định dạng <strong>${l7Data.title}</strong>. Tổng chiều dài payload là <strong>${l7Data.length} Byte</strong>. Gửi xuống L6...`;
             highlightOsiLayer('client', 7);
             updatePacketVisualizer(7);
+            updateInterpreterTable(7);
+            renderHexDump(l7Data.hex);
             await sleep(1500);
 
             // 2. Layer 6: Presentation
-            consoleEl.innerHTML = `<strong>[Layer 6 - Presentation]</strong>: Chuyển đổi bảng mã văn bản sang UTF-8. Thiết lập mã hóa TLS (nếu sử dụng HTTPS)...`;
+            consoleEl.innerHTML = `<strong>[Layer 6 - Presentation]</strong>: Xác định bảng mã ký tự UTF-8 cho Payload. Biểu diễn nhị phân đã sẵn sàng...`;
             highlightOsiLayer('client', 6);
             updatePacketVisualizer(6);
+            updateInterpreterTable(6);
             await sleep(1500);
 
             // 3. Layer 5: Session
-            consoleEl.innerHTML = `<strong>[Layer 5 - Session]</strong>: Tạo phiên làm việc mới, gắn mã định danh Session ID để duy trì cuộc hội thoại...`;
+            consoleEl.innerHTML = `<strong>[Layer 5 - Session]</strong>: Mở phiên làm việc truyền tải, thiết lập đồng bộ hóa truyền nhận...`;
             highlightOsiLayer('client', 5);
             updatePacketVisualizer(5);
+            updateInterpreterTable(5);
             await sleep(1500);
 
             // 4. Layer 4: Transport
-            consoleEl.innerHTML = `<strong>[Layer 4 - Transport]</strong>: Đóng gói thành **Segment**. Sử dụng giao thức **TCP**, chọn cổng nguồn ngẫu nhiên (ví dụ: Port 50325) và cổng đích của dịch vụ (Port 80/443/25)...`;
+            const l4Data = osiEncapsulationData.layers.l4;
+            consoleEl.innerHTML = `<strong>[Layer 4 - Transport]</strong>: Đóng gói thành **TCP Segment**. Thêm 20 byte Header: Cổng nguồn: <strong>54321</strong>, Cổng đích: <strong>${protocol === 'http' ? 80 : (protocol === 'smtp' ? 25 : 12345)}</strong>, Sequence Number: <strong>1000</strong>. Gửi xuống L3...`;
             highlightOsiLayer('client', 4);
             updatePacketVisualizer(4);
+            updateInterpreterTable(4);
+            renderHexDump(l4Data.hex);
             await sleep(1500);
 
             // 5. Layer 3: Network
-            consoleEl.innerHTML = `<strong>[Layer 3 - Network]</strong>: Đóng gói thành **Packet**. Gắn địa chỉ IP nguồn (IP máy bạn: 192.168.1.10) và địa chỉ IP máy nhận (Google: 8.8.8.8)...`;
+            const l3Data = osiEncapsulationData.layers.l3;
+            consoleEl.innerHTML = `<strong>[Layer 3 - Network]</strong>: Đóng gói thành **IP Packet**. Thêm 20 byte IP Header: IP nguồn: <strong>192.168.1.10</strong>, IP đích: <strong>8.8.8.8</strong>, Protocol: <strong>6 (TCP)</strong>. Gửi xuống L2...`;
             highlightOsiLayer('client', 3);
             updatePacketVisualizer(3);
+            updateInterpreterTable(3);
+            renderHexDump(l3Data.hex);
             await sleep(1500);
 
             // 6. Layer 2: Data Link
-            consoleEl.innerHTML = `<strong>[Layer 2 - Data Link]</strong>: Đóng gói thành **Frame**. Tra cứu cổng và gắn địa chỉ MAC nguồn (AA:AA...) cùng địa chỉ MAC của Default Gateway (BB:BB...). Thêm mã kiểm tra lỗi FCS ở đuôi Frame...`;
+            const l2Data = osiEncapsulationData.layers.l2;
+            consoleEl.innerHTML = `<strong>[Layer 2 - Data Link]</strong>: Đóng gói thành **Ethernet Frame**. Thêm 14 byte MAC Header (Src MAC: AA:BB:CC:DD:EE:FF, Dst MAC: 00:11:22:33:44:55) và 4 byte FCS Trailer (CRC32 mã lỗi: <strong>${l2Data.fields[3].hex}</strong>)...`;
             highlightOsiLayer('client', 2);
             updatePacketVisualizer(2);
+            updateInterpreterTable(2);
+            renderHexDump(l2Data.hex);
             await sleep(1500);
 
             // 7. Layer 1: Physical
-            const binary = textToBinary(osiRawData);
-            consoleEl.innerHTML = `<strong>[Layer 1 - Physical]</strong>: Chuyển đổi toàn bộ Frame thành các xung tín hiệu nhị phân (Bits) để đẩy ra dây cáp truyền dẫn:<br><span style="color:var(--accent); font-weight:700; word-break:break-all;">${binary.substring(0, 48)}...</span>`;
+            const l1Data = osiEncapsulationData.layers.l1;
+            consoleEl.innerHTML = `<strong>[Layer 1 - Physical]</strong>: Chuyển đổi toàn bộ khung nhị phân (<strong>${l1Data.length_bits} bit</strong>) thành tín hiệu xung điện trên cáp vật lý...`;
             highlightOsiLayer('client', 1);
             updatePacketVisualizer(1);
             
             const bitstream = document.getElementById('osi-bitstream');
             if (bitstream) {
                 bitstream.style.display = 'flex';
-                bitstream.innerHTML = binary.split('').slice(0, 15).map(bit => `<span>${bit}</span>`).join('');
+                bitstream.innerHTML = l1Data.bitstream.split('').slice(0, 15).map(bit => `<span>${bit}</span>`).join('');
             }
             
             await sleep(1500);
@@ -3406,16 +3570,17 @@
             osiState = 'ready_to_transmit';
             const decBtn = document.getElementById('btn-osi-decap');
             if (decBtn) decBtn.disabled = false;
-            consoleEl.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Đã đóng gói thành công ở Máy gửi!</span><br>Nhấn nút <strong>"2. Truyền & Mở (Decap)"</strong> để đẩy dữ liệu qua đường truyền vật lý sang máy nhận.`;
+            consoleEl.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Đóng gói nhị phân thành công!</span><br>Hãy nhấn nút <strong>"2. Truyền & Mở (Decap)"</strong> để mô phỏng truyền tin qua cáp mạng sang Server.`;
         }
 
         async function startOsiDecapsulation() {
+            if (!osiEncapsulationData) return;
             osiState = 'deencapsulating';
             const decBtn = document.getElementById('btn-osi-decap');
             if (decBtn) decBtn.disabled = true;
             
             const consoleEl = document.getElementById('osi-console');
-            consoleEl.innerHTML = `📡 Đang truyền tín hiệu vật lý qua cáp mạng sang Server...`;
+            consoleEl.innerHTML = `📡 Đang phát sóng tín hiệu nhị phân nhấp nháy qua cáp vật lý sang máy nhận...`;
             
             let scrollY = 0;
             const bitStream = document.getElementById('osi-bitstream');
@@ -3428,49 +3593,55 @@
             }
             
             // 1. Layer 1: Physical (Server)
-            consoleEl.innerHTML = `<strong>[Layer 1 - Physical (Server)]</strong>: Nhận tín hiệu xung điện từ cổng RJ45. Đọc thành các bit 0 và 1...`;
+            consoleEl.innerHTML = `<strong>[Layer 1 - Physical (Server)]</strong>: Nhận tín hiệu nhị phân thành công. Bắt đầu đẩy lên tầng Data Link để xử lý khung Frame...`;
             highlightOsiLayer('server', 1);
             updatePacketVisualizer(1);
+            updateInterpreterTable(2);
+            renderHexDump(osiEncapsulationData.layers.l2.hex);
             await sleep(1500);
-
+ 
             // 2. Layer 2: Data Link
-            consoleEl.innerHTML = `<strong>[Layer 2 - Data Link]</strong>: Đọc Frame Header. Xác nhận địa chỉ MAC đích khớp với card mạng (NIC) của Server. Tính toán kiểm tra checksum FCS thấy không có lỗi dữ liệu. Bóc MAC Header/Trailer...`;
+            const l2Data = osiEncapsulationData.layers.l2;
+            consoleEl.innerHTML = `<strong>[Layer 2 - Data Link (Server)]</strong>: Xác nhận địa chỉ MAC đích khớp với Server. Tính toán mã lỗi CRC32 khớp với mã FCS <strong>${l2Data.fields[3].hex}</strong> (Không có lỗi bit). **Bóc Ethernet MAC Header & FCS Trailer**...`;
             highlightOsiLayer('server', 2);
-            updatePacketVisualizer(2);
+            updatePacketVisualizer(3);
+            updateInterpreterTable(3);
+            renderHexDump(osiEncapsulationData.layers.l3.hex);
             await sleep(1500);
 
             // 3. Layer 3: Network
-            consoleEl.innerHTML = `<strong>[Layer 3 - Network]</strong>: Đọc Packet Header. Xác nhận IP nhận trùng khớp với địa chỉ IP của Server. Bóc IP Header...`;
+            consoleEl.innerHTML = `<strong>[Layer 3 - Network (Server)]</strong>: Đọc IP đích <strong>8.8.8.8</strong> (Khớp địa chỉ IP Server). Xác định Protocol 6 (TCP). **Bóc IP Header**...`;
             highlightOsiLayer('server', 3);
-            updatePacketVisualizer(3);
+            updatePacketVisualizer(4);
+            updateInterpreterTable(4);
+            renderHexDump(osiEncapsulationData.layers.l4.hex);
             await sleep(1500);
 
             // 4. Layer 4: Transport
-            consoleEl.innerHTML = `<strong>[Layer 4 - Transport]</strong>: Đọc Segment Header. Tra cứu Destination Port thấy yêu cầu gửi tới dịch vụ HTTP (Port 80). Bóc TCP Header...`;
+            consoleEl.innerHTML = `<strong>[Layer 4 - Transport (Server)]</strong>: Đọc Destination Port <strong>${osiEncapsulationData.layers.l4.fields[1].value}</strong>. Chuyển giao dữ liệu cho tiến trình ứng dụng phù hợp. **Bóc TCP Header**...`;
             highlightOsiLayer('server', 4);
-            updatePacketVisualizer(4);
+            updatePacketVisualizer(7);
+            updateInterpreterTable(7);
+            renderHexDump(osiEncapsulationData.layers.l7.hex);
             await sleep(1500);
 
             // 5. Layer 5: Session
-            consoleEl.innerHTML = `<strong>[Layer 5 - Session]</strong>: Xác định Session ID hợp lệ, duy trì kết nối để chuyển tiếp cho ứng dụng xử lý...`;
+            consoleEl.innerHTML = `<strong>[Layer 5 - Session (Server)]</strong>: Xác định phiên làm việc hợp lệ, đồng bộ dữ liệu hoàn tất...`;
             highlightOsiLayer('server', 5);
-            updatePacketVisualizer(5);
             await sleep(1500);
 
             // 6. Layer 6: Presentation
-            consoleEl.innerHTML = `<strong>[Layer 6 - Presentation]</strong>: Giải mã dữ liệu nhị phân từ định dạng UTF-8 trở lại dạng chuỗi ký tự...`;
+            consoleEl.innerHTML = `<strong>[Layer 6 - Presentation (Server)]</strong>: Giải mã chuỗi Byte nhị phân từ bảng mã UTF-8 trở lại dạng văn bản thô...`;
             highlightOsiLayer('server', 6);
-            updatePacketVisualizer(6);
             await sleep(1500);
 
             // 7. Layer 7: Application
-            consoleEl.innerHTML = `<strong>[Layer 7 - Application]</strong>: Ứng dụng Server đã nhận được thông điệp gốc! Đang hiển thị lên màn hình...`;
+            consoleEl.innerHTML = `<strong>[Layer 7 - Application (Server)]</strong>: Ứng dụng Server đã nhận được thông điệp hoàn chỉnh từ Client!`;
             highlightOsiLayer('server', 7);
-            updatePacketVisualizer(7);
             await sleep(1500);
 
             osiState = 'done';
-            consoleEl.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Hoàn thành! Máy nhận đã nhận và giải mã thành công:</span><br><span style="background:var(--primary); color:#fff; border-radius:4px; padding:4px 8px; font-weight:700; font-size:14px; display:inline-block; margin-top:8px;">${osiRawData}</span>`;
+            consoleEl.innerHTML = `<span style="color:var(--success); font-weight:700;">✔️ Hoàn thành bóc gói! Máy nhận đã nhận và giải mã thành công:</span><br><span style="background:var(--primary); color:#fff; border-radius:4px; padding:4px 8px; font-weight:700; font-size:14px; display:inline-block; margin-top:8px;">${osiRawData}</span>`;
         }
 
         function highlightOsiLayer(side, layerNum) {
@@ -3899,6 +4070,551 @@
                     }
                 }, 50);
             });
+        }
+
+        // ================= TAB 9: ARP LAB =================
+        let arpSwitchMacTable = {};
+        let arpHostCache = {
+            A: {},
+            B: {},
+            C: {},
+            D: {}
+        };
+        const arpCoordinates = {
+            A: { x: 180, y: 140, label: "Node A", ip: "192.168.1.1", mac: "AA", port: 1 },
+            B: { x: 580, y: 140, label: "Node B", mac: "BB", ip: "192.168.1.2", port: 2 },
+            C: { x: 580, y: 440, label: "Node C", mac: "CC", ip: "192.168.1.3", port: 3 },
+            D: { x: 180, y: 440, label: "Node D", mac: "DD", ip: "192.168.1.4", port: 4 },
+            CTR: { x: 380, y: 290, label: "Switch L2", isCenter: true }
+        };
+        const arpLinks = [
+            { u: 'A', v: 'CTR' }, { u: 'B', v: 'CTR' }, { u: 'C', v: 'CTR' }, { u: 'D', v: 'CTR' }
+        ];
+
+        function drawArpLab() {
+            const nodesWrapper = document.getElementById('arp-nodes-wrapper');
+            const svgCanvas = document.getElementById('arp-svg-canvas');
+            if (!nodesWrapper || !svgCanvas) return;
+
+            nodesWrapper.innerHTML = '';
+            svgCanvas.innerHTML = '';
+
+            // Draw links
+            arpLinks.forEach(link => {
+                const nodeU = arpCoordinates[link.u];
+                const nodeV = arpCoordinates[link.v];
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", nodeU.x);
+                line.setAttribute("y1", nodeU.y);
+                line.setAttribute("x2", nodeV.x);
+                line.setAttribute("y2", nodeV.y);
+                line.setAttribute("class", "dev-cable");
+                line.setAttribute("id", `arp-cable-${link.u}-${link.v}`);
+                svgCanvas.appendChild(line);
+            });
+
+            // Draw Node Circles
+            Object.keys(arpCoordinates).forEach(nodeId => {
+                const node = arpCoordinates[nodeId];
+                const nodeDiv = document.createElement('div');
+                nodeDiv.id = `arp-node-${nodeId}`;
+                
+                let deviceClass = 'active-pc';
+                let iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+
+                if (node.isCenter) {
+                    deviceClass = 'active-switch';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M7 12h10M12 7v10M9 9l6 6M15 9l-6 6"></path></svg>`;
+                }
+
+                nodeDiv.className = `dev-node-el ${deviceClass}`;
+                nodeDiv.style.left = `${node.x}px`;
+                nodeDiv.style.top = `${node.y}px`;
+
+                let subTextHtml = '';
+                if (!node.isCenter) {
+                    subTextHtml = `<div class="dev-node-ip" style="font-size:10.5px; line-height:1.25; margin-top:2px;">IP: ${node.ip}<br>MAC: ${node.mac}</div>`;
+                }
+
+                nodeDiv.innerHTML = `
+                    <div class="dev-icon-box">
+                        ${iconSvg}
+                    </div>
+                    <div class="dev-node-label" style="font-weight:700;">${node.label}</div>
+                    ${subTextHtml}
+                `;
+                nodesWrapper.appendChild(nodeDiv);
+            });
+        }
+
+        function resetArpLabSimulation() {
+            arpSwitchMacTable = {};
+            arpHostCache = { A: {}, B: {}, C: {}, D: {} };
+            
+            const consoleEl = document.getElementById('arp-console');
+            if (consoleEl) {
+                consoleEl.innerHTML = `Hệ thống đã reset. Chọn máy gửi, máy nhận và bấm "Phân giải ARP".`;
+            }
+            
+            updateArpHostsTableUI();
+            updateArpSwitchTableUI();
+            drawArpLab();
+        }
+
+        function clearArpLabMemory() {
+            arpSwitchMacTable = {};
+            arpHostCache = { A: {}, B: {}, C: {}, D: {} };
+            updateArpHostsTableUI();
+            updateArpSwitchTableUI();
+            
+            const consoleEl = document.getElementById('arp-console');
+            if (consoleEl) {
+                consoleEl.innerHTML = `Đã xóa sạch bộ nhớ bảng ARP Cache của các Host và MAC Table của Switch trung tâm.`;
+            }
+            
+            document.querySelectorAll('#arp-nodes-wrapper .dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver', 'highlight-ignore');
+            });
+        }
+
+        function updateArpHostsTableUI() {
+            const tbody = document.getElementById('arp-hosts-tbody');
+            if (!tbody) return;
+            
+            let html = '';
+            let hasEntries = false;
+            
+            ['A', 'B', 'C', 'D'].forEach(hostId => {
+                const cache = arpHostCache[hostId];
+                const ips = Object.keys(cache);
+                if (ips.length > 0) {
+                    hasEntries = true;
+                    ips.forEach(ip => {
+                        const mac = cache[ip];
+                        html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 6px; font-weight:700; color:var(--primary); font-size:11px;">Host ${hostId}</td>
+                            <td style="padding: 6px; font-family:monospace; font-size:11px;">${ip}</td>
+                            <td style="padding: 6px; font-family:monospace; color:var(--success); font-weight:700; font-size:11px;">${mac}:${mac}:${mac}:${mac} (PC ${mac})</td>
+                        </tr>`;
+                    });
+                }
+            });
+            
+            if (!hasEntries) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 12px; font-size:11px;">ARP Cache trống. Hãy chạy mô phỏng.</td></tr>`;
+            } else {
+                tbody.innerHTML = html;
+            }
+        }
+
+        function updateArpSwitchTableUI() {
+            const tbody = document.getElementById('arp-switch-tbody');
+            if (!tbody) return;
+            
+            const keys = Object.keys(arpSwitchMacTable);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 12px; font-size:11px;">MAC Address Table trống.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = keys.map(mac => {
+                const port = arpSwitchMacTable[mac];
+                return `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 6px; font-weight:700; color:var(--accent); font-size:11px;">Port ${port}</td>
+                    <td style="padding: 6px; font-family:monospace; font-size:11px;">${mac}:${mac}:${mac}:${mac} (PC ${mac})</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function animateArpPacket(packetIndex, startX, startY, endX, endY, speedMs = 600) {
+            const p = document.getElementById(`arp-packet-${packetIndex}`);
+            if (!p) return;
+            
+            p.style.display = 'block';
+            p.style.left = `${startX}px`;
+            p.style.top = `${startY}px`;
+            
+            void p.offsetWidth;
+            
+            p.style.transition = `all ${speedMs}ms linear`;
+            p.style.left = `${endX}px`;
+            p.style.top = `${endY}px`;
+            
+            await sleep(speedMs + 50);
+            p.style.display = 'none';
+        }
+
+        async function runArpLabSimulation() {
+            const start = document.getElementById('arp-sender').value;
+            const end = document.getElementById('arp-receiver').value;
+            const consoleEl = document.getElementById('arp-console');
+            if (!consoleEl) return;
+            
+            if (start === end) {
+                alert("Vui lòng chọn Node nhận khác Node gửi!");
+                return;
+            }
+
+            document.querySelectorAll('#arp-nodes-wrapper .dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver', 'highlight-ignore');
+            });
+
+            document.getElementById(`arp-node-${start}`).classList.add('highlight-sender');
+            
+            const coords = arpCoordinates;
+            const startNode = coords[start];
+            const endNode = coords[end];
+            
+            consoleEl.innerHTML = `🏁 <strong>[Bắt đầu]</strong> Node ${start} (${startNode.ip}) muốn gửi gói tin cho Node ${end} (${endNode.ip}).<br>➔ Tra bảng ARP Cache của PC ${start}...`;
+            await sleep(1500);
+            
+            const cachedMac = arpHostCache[start][endNode.ip];
+            if (cachedMac) {
+                consoleEl.innerHTML += `<br>➔ <span style="color:var(--success); font-weight:700;">[ARP HIT]</span> IP <strong>${endNode.ip}</strong> đã phân giải thành MAC <strong>${cachedMac}</strong> trong cache.<br>➔ PC ${start} đóng gói Ethernet Frame trực tiếp gửi tới Switch...`;
+                await sleep(1500);
+                
+                // Animate packet to Switch
+                let cableStart = document.getElementById(`arp-cable-${start}-CTR`);
+                if (cableStart) cableStart.classList.add('active');
+                await animateArpPacket(0, startNode.x, startNode.y, coords.CTR.x, coords.CTR.y, 500);
+                if (cableStart) cableStart.classList.remove('active');
+                
+                arpSwitchMacTable[startNode.mac] = startNode.port;
+                updateArpSwitchTableUI();
+                
+                const knowsReceiver = !!arpSwitchMacTable[endNode.mac];
+                if (knowsReceiver) {
+                    consoleEl.innerHTML += `<br>➔ Switch tra bảng MAC biết địa chỉ ${endNode.mac} ở Port ${endNode.port}. Định tuyến Unicast trực tiếp...`;
+                    let cableDest = document.getElementById(`arp-cable-${end}-CTR`);
+                    if (cableDest) cableDest.classList.add('active');
+                    await animateArpPacket(0, coords.CTR.x, coords.CTR.y, endNode.x, endNode.y, 500);
+                    if (cableDest) cableDest.classList.remove('active');
+                    
+                    document.getElementById(`arp-node-${end}`).classList.add('highlight-receiver');
+                    consoleEl.innerHTML += `<br><span style="color:var(--success); font-weight:700;">✔️ Thành công!</span> PC ${end} nhận Frame. Bảng ARP Cache không cần thay đổi.`;
+                } else {
+                    consoleEl.innerHTML += `<br>➔ Switch chưa biết MAC của PC ${end}. Thực hiện Flood gói tin...`;
+                    const targetNodes = ['A', 'B', 'C', 'D'].filter(n => n !== start);
+                    targetNodes.forEach(n => {
+                        const cable = document.getElementById(`arp-cable-${n}-CTR`);
+                        if (cable) cable.classList.add('active');
+                    });
+                    const anims = targetNodes.map((n, idx) => {
+                        return animateArpPacket(idx, coords.CTR.x, coords.CTR.y, coords[n].x, coords[n].y, 500);
+                    });
+                    await Promise.all(anims);
+                    targetNodes.forEach(n => {
+                        const cable = document.getElementById(`arp-cable-${n}-CTR`);
+                        if (cable) cable.classList.remove('active');
+                    });
+                    document.getElementById(`arp-node-${end}`).classList.add('highlight-receiver');
+                    arpSwitchMacTable[endNode.mac] = endNode.port;
+                    updateArpSwitchTableUI();
+                    consoleEl.innerHTML += `<br><span style="color:var(--success); font-weight:700;">✔️ Thành công nhờ Flooding!</span> Switch đã học thêm MAC ${endNode.mac} tại Port ${endNode.port}.`;
+                }
+                return;
+            }
+            
+            // ARP Cache Miss
+            consoleEl.innerHTML += `<br>➔ <span style="color:var(--error); font-weight:700;">[ARP MISS]</span> Không tìm thấy trong cache!<br>➔ PC ${start} bắt buộc phát **ARP Request** (MAC đích: **FF:FF:FF:FF:FF:FF** Broadcast):<br>&nbsp;&nbsp;&nbsp;&nbsp;<em>"Ai có IP ${endNode.ip}? Hãy báo cho ${startNode.ip}!"</em>...`;
+            await sleep(2500);
+            
+            // Step 1: Request to Switch
+            let cableStart = document.getElementById(`arp-cable-${start}-CTR`);
+            if (cableStart) cableStart.classList.add('active');
+            await animateArpPacket(0, startNode.x, startNode.y, coords.CTR.x, coords.CTR.y, 600);
+            if (cableStart) cableStart.classList.remove('active');
+            
+            arpSwitchMacTable[startNode.mac] = startNode.port;
+            updateArpSwitchTableUI();
+            
+            consoleEl.innerHTML += `<br>➔ Switch nhận ARP Request. Học MAC <strong>${startNode.mac}</strong> tại Port ${startNode.port}.<br>➔ Vì gói tin gửi tới địa chỉ Broadcast, Switch **Flood (Phát ngập)** ra tất cả các cổng còn lại...`;
+            await sleep(2000);
+            
+            // Step 2: Switch floods to other 3 hosts
+            const targetNodes = ['A', 'B', 'C', 'D'].filter(n => n !== start);
+            targetNodes.forEach(n => {
+                const cable = document.getElementById(`arp-cable-${n}-CTR`);
+                if (cable) cable.classList.add('active');
+            });
+            const anims = targetNodes.map((n, idx) => {
+                return animateArpPacket(idx, coords.CTR.x, coords.CTR.y, coords[n].x, coords[n].y, 600);
+            });
+            await Promise.all(anims);
+            targetNodes.forEach(n => {
+                const cable = document.getElementById(`arp-cable-${n}-CTR`);
+                if (cable) cable.classList.remove('active');
+            });
+            
+            // Highlight nodes
+            targetNodes.forEach(n => {
+                const el = document.getElementById(`arp-node-${n}`);
+                if (n === end) {
+                    el.classList.add('highlight-receiver');
+                } else {
+                    el.classList.add('highlight-ignore');
+                }
+            });
+            
+            consoleEl.innerHTML += `<br>➔ Các Node nhận kiểm tra IP đích:<br>&nbsp;&nbsp;+ Các PC khác (${targetNodes.filter(n => n !== end).join(', ')}) so sánh IP đích thấy không khớp nên **tự động hủy** gói tin.<br>&nbsp;&nbsp;+ PC <strong>${end}</strong> nhận diện đúng IP của mình. Lưu <strong>${startNode.ip} ➔ ${startNode.mac}</strong> vào ARP Cache của mình và chuẩn bị gửi **ARP Reply Unicast**...`;
+            
+            // Update receiver's ARP Cache with sender's info!
+            arpHostCache[end][startNode.ip] = startNode.mac;
+            updateArpHostsTableUI();
+            await sleep(3000);
+            
+            // Step 3: Unicast Reply from Receiver to Switch
+            consoleEl.innerHTML += `<br>➔ PC <strong>${end}</strong> phản hồi **ARP Reply** (MAC nguồn: ${endNode.mac}, MAC đích: ${startNode.mac}):<br>&nbsp;&nbsp;&nbsp;&nbsp;<em>"IP ${endNode.ip} đang ở địa chỉ MAC ${endNode.mac}!"</em>...`;
+            let cableEnd = document.getElementById(`arp-cable-${end}-CTR`);
+            if (cableEnd) cableEnd.classList.add('active');
+            await animateArpPacket(0, endNode.x, endNode.y, coords.CTR.x, coords.CTR.y, 600);
+            if (cableEnd) cableEnd.classList.remove('active');
+            
+            arpSwitchMacTable[endNode.mac] = endNode.port;
+            updateArpSwitchTableUI();
+            
+            consoleEl.innerHTML += `<br>➔ Switch nhận ARP Reply. Học MAC <strong>${endNode.mac}</strong> tại Port ${endNode.port}.<br>➔ Tra bảng MAC thấy đích đến <strong>${startNode.mac}</strong> ở Port ${startNode.port}. Chuyển tiếp **Unicast**...`;
+            await sleep(2500);
+            
+            // Step 4: Switch forwards to Sender
+            if (cableStart) cableStart.classList.add('active');
+            await animateArpPacket(0, coords.CTR.x, coords.CTR.y, startNode.x, startNode.y, 600);
+            if (cableStart) cableStart.classList.remove('active');
+            
+            // Sender updates its ARP Cache!
+            arpHostCache[start][endNode.ip] = endNode.mac;
+            updateArpHostsTableUI();
+            
+            consoleEl.innerHTML += `<br><span style="color:var(--success); font-weight:700;">✔️ Hoàn thành phân giải địa chỉ ARP!</span> PC ${start} lưu thành công <strong>${endNode.ip} ➔ ${endNode.mac}</strong> vào ARP Cache.<br>➔ <em>Bây giờ hai thiết bị đã biết MAC của nhau. Nhấn "Phân Giải ARP" lần nữa để truyền gói tin trực tiếp!</em>`;
+        }
+
+        // ================= TAB 10: IP & SUBNET LAB =================
+        function initSubnetLab() {
+            updateSubnetCalculator();
+            resetIpQuiz();
+        }
+
+        function ipToBinary(ipStr) {
+            const parts = ipStr.split('.');
+            if (parts.length !== 4) return null;
+            let binaryStr = '';
+            for (let i = 0; i < 4; i++) {
+                const val = parseInt(parts[i]);
+                if (isNaN(val) || val < 0 || val > 255) return null;
+                let bin = val.toString(2);
+                while (bin.length < 8) bin = '0' + bin;
+                binaryStr += bin;
+            }
+            return binaryStr;
+        }
+
+        function binaryToIp(binStr) {
+            const octets = [];
+            for (let i = 0; i < 4; i++) {
+                const octetBin = binStr.substring(i * 8, (i + 1) * 8);
+                octets.push(parseInt(octetBin, 2));
+            }
+            return octets.join('.');
+        }
+
+        function updateSubnetCalculator() {
+            const ipInput = document.getElementById('sub-ip-input');
+            const maskSelect = document.getElementById('sub-mask-select');
+            const binaryContainer = document.getElementById('sub-binary-container');
+            
+            if (!ipInput || !maskSelect || !binaryContainer) return;
+            
+            const ipVal = ipInput.value.trim();
+            const cidr = parseInt(maskSelect.value);
+            
+            const binaryIp = ipToBinary(ipVal);
+            if (!binaryIp) {
+                binaryContainer.innerHTML = '<span style="color:var(--error); font-weight:700; font-size:13px;">IP không hợp lệ! Vui lòng nhập đúng định dạng x.x.x.x (0-255)</span>';
+                return;
+            }
+            
+            // Build Binary Mask string
+            let binaryMask = '';
+            for (let i = 0; i < 32; i++) {
+                binaryMask += i < cidr ? '1' : '0';
+            }
+            
+            // Format binary mask with dots
+            let formattedBinMask = '';
+            for (let i = 0; i < 4; i++) {
+                formattedBinMask += binaryMask.substring(i * 8, (i + 1) * 8);
+                if (i < 3) formattedBinMask += '.';
+            }
+            document.getElementById('sub-calc-binary-mask').textContent = formattedBinMask;
+            
+            // Decimal Mask
+            const maskIp = binaryToIp(binaryMask);
+            document.getElementById('sub-calc-mask').textContent = `${maskIp} (/${cidr})`;
+            
+            // Network Address
+            let networkBin = '';
+            for (let i = 0; i < 32; i++) {
+                networkBin += i < cidr ? binaryIp[i] : '0';
+            }
+            const networkIp = binaryToIp(networkBin);
+            document.getElementById('sub-calc-network').textContent = networkIp;
+            
+            // Broadcast Address
+            let broadcastBin = '';
+            for (let i = 0; i < 32; i++) {
+                broadcastBin += i < cidr ? binaryIp[i] : '1';
+            }
+            const broadcastIp = binaryToIp(broadcastBin);
+            document.getElementById('sub-calc-broadcast').textContent = broadcastIp;
+            
+            // Usable IP Range & Hosts
+            let usableHosts = 0;
+            let rangeText = '';
+            if (cidr >= 31) {
+                rangeText = "Không có cổng khả dụng cho Host";
+                usableHosts = cidr === 31 ? 2 : 1;
+            } else {
+                // First Host
+                let firstHostBin = networkBin.substring(0, 31) + '1';
+                // Last Host
+                let lastHostBin = broadcastBin.substring(0, 31) + '0';
+                
+                const firstIp = binaryToIp(firstHostBin);
+                const lastIp = binaryToIp(lastHostBin);
+                rangeText = `${firstIp} ➔ ${lastIp}`;
+                usableHosts = Math.pow(2, 32 - cidr) - 2;
+            }
+            
+            document.getElementById('sub-calc-range').textContent = rangeText;
+            document.getElementById('sub-calc-hosts').textContent = `${usableHosts.toLocaleString()} IPs`;
+            
+            // Render 32 bit boxes
+            let html = '';
+            for (let i = 0; i < 32; i++) {
+                const bit = binaryIp[i];
+                const isNetwork = i < cidr;
+                const bitClass = isNetwork ? 'bit-network' : 'bit-host';
+                html += `<div class="bit-box ${bitClass}">${bit}</div>`;
+                if ((i + 1) % 8 === 0 && i < 31) {
+                    html += `<div class="octet-separator">.</div>`;
+                }
+            }
+            binaryContainer.innerHTML = html;
+        }
+
+        // Quiz Game Variables
+        let quizScore = 0;
+        let quizTotal = 0;
+        let quizStreak = 0;
+        let currentQuizIp = '';
+        let currentQuizAnswer = '';
+        let currentQuizDesc = '';
+        let quizAnswered = false;
+
+        const quizDataPool = [
+            // Private IPs
+            { ip: "192.168.1.1", type: "private", desc: "192.168.x.x là dải Private IP Class C cực kỳ phổ biến trong mạng gia đình." },
+            { ip: "10.0.0.1", type: "private", desc: "10.x.x.x là dải Private IP Class A dùng cho mạng doanh nghiệp lớn." },
+            { ip: "172.16.42.5", type: "private", desc: "172.16.x.x đến 172.31.x.x là dải Private IP Class B." },
+            { ip: "192.168.100.254", type: "private", desc: "192.168.x.x là dải Private IP Class C." },
+            { ip: "10.255.255.10", type: "private", desc: "Toàn bộ dải 10.x.x.x là địa chỉ IP Private." },
+            
+            // Loopback IPs
+            { ip: "127.0.0.1", type: "loopback", desc: "127.0.0.1 là địa chỉ Loopback chuẩn (localhost), trỏ về chính thiết bị của bạn." },
+            { ip: "127.0.0.8", type: "loopback", desc: "Toàn bộ dải 127.x.x.x được dành riêng cho mục đích Loopback kiểm thử." },
+            { ip: "127.255.1.1", type: "loopback", desc: "Bất cứ IP nào bắt đầu bằng 127 đều thuộc dải Loopback." },
+            
+            // APIPA IPs
+            { ip: "169.254.1.2", type: "apipa", desc: "169.254.x.x là dải APIPA, Windows tự gán khi không nhận được IP từ DHCP Server." },
+            { ip: "169.254.200.99", type: "apipa", desc: "APIPA (169.254.x.x) giúp các máy trong mạng LAN vẫn kết nối tạm thời được với nhau khi lỗi DHCP." },
+            
+            // Public IPs
+            { ip: "8.8.8.8", type: "public", desc: "8.8.8.8 là Public IP của máy chủ Google DNS nổi tiếng toàn cầu." },
+            { ip: "1.1.1.1", type: "public", desc: "1.1.1.1 là Public IP của dịch vụ Cloudflare DNS." },
+            { ip: "216.58.203.14", type: "public", desc: "Địa chỉ này thuộc dải Public IP của máy chủ Google Web." },
+            { ip: "112.78.2.1", type: "public", desc: "Đây là địa chỉ Public IP định tuyến trên Internet toàn cầu." }
+        ];
+
+        function resetIpQuiz() {
+            quizScore = 0;
+            quizTotal = 0;
+            quizStreak = 0;
+            const scoreEl = document.getElementById('sub-quiz-score');
+            const totalEl = document.getElementById('sub-quiz-total');
+            const streakEl = document.getElementById('sub-quiz-streak');
+            if (scoreEl) scoreEl.textContent = '0';
+            if (totalEl) totalEl.textContent = '0';
+            if (streakEl) streakEl.textContent = '0';
+            nextIpQuizQuestion();
+        }
+
+        function nextIpQuizQuestion() {
+            quizAnswered = false;
+            
+            // Hide next button, hide explanation
+            const nextBtn = document.getElementById('sub-quiz-next-btn');
+            const expDiv = document.getElementById('sub-quiz-explanation');
+            if (nextBtn) nextBtn.style.display = 'none';
+            if (expDiv) expDiv.style.display = 'none';
+            
+            // Reset button classes
+            document.querySelectorAll('.quiz-btn').forEach(btn => {
+                btn.classList.remove('correct', 'incorrect');
+                btn.disabled = false;
+            });
+            
+            // Select random question from pool
+            const question = quizDataPool[Math.floor(Math.random() * quizDataPool.length)];
+            currentQuizIp = question.ip;
+            currentQuizAnswer = question.type;
+            currentQuizDesc = question.desc;
+            
+            document.getElementById('sub-quiz-ip-display').textContent = currentQuizIp;
+        }
+
+        function submitIpQuizAnswer(selectedAnswer) {
+            if (quizAnswered) return;
+            quizAnswered = true;
+            
+            quizTotal++;
+            document.getElementById('sub-quiz-total').textContent = quizTotal;
+            
+            const expDiv = document.getElementById('sub-quiz-explanation');
+            const nextBtn = document.getElementById('sub-quiz-next-btn');
+            
+            // Highlight buttons
+            document.querySelectorAll('.quiz-btn').forEach(btn => {
+                btn.disabled = true;
+                const onclickVal = btn.getAttribute('onclick');
+                if (onclickVal.includes(currentQuizAnswer)) {
+                    btn.classList.add('correct');
+                } else if (onclickVal.includes(selectedAnswer)) {
+                    btn.classList.add('incorrect');
+                }
+            });
+            
+            if (selectedAnswer === currentQuizAnswer) {
+                quizScore++;
+                quizStreak++;
+                document.getElementById('sub-quiz-score').textContent = quizScore;
+                document.getElementById('sub-quiz-streak').textContent = quizStreak;
+                
+                expDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                expDiv.style.border = '1px solid var(--success)';
+                expDiv.style.color = 'var(--success)';
+                expDiv.innerHTML = `🎉 <strong>Chính xác!</strong> ${currentQuizDesc}`;
+            } else {
+                quizStreak = 0;
+                document.getElementById('sub-quiz-streak').textContent = quizStreak;
+                
+                expDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+                expDiv.style.border = '1px solid var(--error)';
+                expDiv.style.color = 'var(--error)';
+                expDiv.innerHTML = `❌ <strong>Sai mất rồi!</strong> Đáp án đúng là <strong>${currentQuizAnswer.toUpperCase()} IP</strong>.<br>${currentQuizDesc}`;
+            }
+            
+            expDiv.style.display = 'block';
+            if (nextBtn) nextBtn.style.display = 'inline-block';
         }
 
         function sleep(ms) {
