@@ -1462,6 +1462,14 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
                 IP & Subnet (Lab)
             </button>
+            <button class="tab-btn" onclick="switchTab('tab-nat')" id="btn-tab-nat">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                Routing & NAT (Lab)
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-port')" id="btn-tab-port">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Quét Cổng & Firewall (Lab)
+            </button>
         </div>
     </header>
 
@@ -1546,6 +1554,22 @@
                 <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab IP & Subnet (Lab)...</p>
             </div>
         </section>
+        
+        <!-- ================= TAB 11: ROUTING & NAT LAB ================= -->
+        <section id="tab-nat" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Routing & NAT (Lab)...</p>
+            </div>
+        </section>
+        
+        <!-- ================= TAB 12: PORT SCANNER & FIREWALL LAB ================= -->
+        <section id="tab-port" class="tab-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="spinner" style="width:24px; height:24px;"></span>
+                <p style="margin-top: 10px; color: var(--text-muted);">Đang tải Tab Quét Cổng & Firewall (Lab)...</p>
+            </div>
+        </section>
 
     </main>
 
@@ -1602,13 +1626,17 @@
                 resetArpLabSimulation();
             } else if (tabId === 'tab-subnet') {
                 initSubnetLab();
+            } else if (tabId === 'tab-nat') {
+                resetNatLabSimulation();
+            } else if (tabId === 'tab-port') {
+                resetPortLab();
             }
         }
 
         // Load HTML templates for each tab from separate files
         async function loadTabTemplates() {
             try {
-                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes, socketRes, arpRes, subnetRes] = await Promise.all([
+                const [localRes, globalRes, pgRes, toolsRes, topologyRes, devicesRes, osiRes, socketRes, arpRes, subnetRes, natRes, portRes] = await Promise.all([
                     fetch('/tab-local.html'),
                     fetch('/tab-global.html'),
                     fetch('/tab-playground.html'),
@@ -1618,7 +1646,9 @@
                     fetch('/tab-osi.html'),
                     fetch('/tab-socket.html'),
                     fetch('/tab-arp.html'),
-                    fetch('/tab-subnet.html')
+                    fetch('/tab-subnet.html'),
+                    fetch('/tab-nat.html'),
+                    fetch('/tab-port.html')
                 ]);
 
                 document.getElementById('tab-local').innerHTML = await localRes.text();
@@ -1631,6 +1661,8 @@
                 document.getElementById('tab-socket').innerHTML = await socketRes.text();
                 document.getElementById('tab-arp').innerHTML = await arpRes.text();
                 document.getElementById('tab-subnet').innerHTML = await subnetRes.text();
+                document.getElementById('tab-nat').innerHTML = await natRes.text();
+                document.getElementById('tab-port').innerHTML = await portRes.text();
 
                 // Once loaded, trigger initial actions
                 await loadNetworkInfo();
@@ -1649,6 +1681,10 @@
                     resetArpLabSimulation();
                 } else if (document.getElementById('tab-subnet').classList.contains('active')) {
                     initSubnetLab();
+                } else if (document.getElementById('tab-nat').classList.contains('active')) {
+                    resetNatLabSimulation();
+                } else if (document.getElementById('tab-port').classList.contains('active')) {
+                    resetPortLab();
                 }
             } catch (err) {
                 console.error("Lỗi khi tải các tệp giao diện con:", err);
@@ -4615,6 +4651,551 @@
             
             expDiv.style.display = 'block';
             if (nextBtn) nextBtn.style.display = 'inline-block';
+        }
+
+        // ================= TAB 11: ROUTING & NAT LAB =================
+        let natTranslationTable = [];
+        const natCoordinates = {
+            // LAN zone (x: 20 -> 300)
+            A1: { x: 100, y: 150, label: "PC A1", ip: "192.168.1.10", isPC: true },
+            A2: { x: 100, y: 450, label: "PC A2", ip: "192.168.1.20", isPC: true },
+            SW: { x: 230, y: 300, label: "LAN Switch", isSwitch: true },
+            
+            // Router Gateway (x: 370 -> 430)
+            RT: { x: 380, y: 300, label: "Router R1", isRouter: true, ipLan: "192.168.1.1", ipWan: "112.78.2.1" },
+            
+            // WAN / Internet zone (x: 450 -> 740)
+            ISP: { x: 520, y: 300, label: "ISP Cloud", isCloud: true, ip: "112.78.2.2" },
+            SV1: { x: 680, y: 180, label: "Google Web", ip: "8.8.8.8", isServer: true },
+            SV2: { x: 680, y: 420, label: "Cloudflare", ip: "1.1.1.1", isServer: true }
+        };
+        const natLinks = [
+            { u: 'A1', v: 'SW' }, { u: 'A2', v: 'SW' },
+            { u: 'SW', v: 'RT', label: "G0/0" },
+            { u: 'RT', v: 'ISP', label: "G0/1" },
+            { u: 'ISP', v: 'SV1' }, { u: 'ISP', v: 'SV2' }
+        ];
+
+        function drawNatLab() {
+            const nodesWrapper = document.getElementById('nat-nodes-wrapper');
+            const svgCanvas = document.getElementById('nat-svg-canvas');
+            if (!nodesWrapper || !svgCanvas) return;
+
+            nodesWrapper.innerHTML = '';
+            svgCanvas.innerHTML = '';
+
+            // Draw links
+            natLinks.forEach(link => {
+                const nodeU = natCoordinates[link.u];
+                const nodeV = natCoordinates[link.v];
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", nodeU.x);
+                line.setAttribute("y1", nodeU.y);
+                line.setAttribute("x2", nodeV.x);
+                line.setAttribute("y2", nodeV.y);
+                line.setAttribute("class", "dev-cable");
+                line.setAttribute("id", `nat-cable-${link.u}-${link.v}`);
+                svgCanvas.appendChild(line);
+
+                if (link.label) {
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("x", (nodeU.x + nodeV.x) / 2);
+                    text.setAttribute("y", (nodeU.y + nodeV.y) / 2 - 8);
+                    text.setAttribute("fill", "var(--text-muted)");
+                    text.setAttribute("font-size", "10px");
+                    text.setAttribute("text-anchor", "middle");
+                    text.textContent = link.label;
+                    svgCanvas.appendChild(text);
+                }
+            });
+
+            // Draw Nodes
+            Object.keys(natCoordinates).forEach(nodeId => {
+                const node = natCoordinates[nodeId];
+                const nodeDiv = document.createElement('div');
+                nodeDiv.id = `nat-node-${nodeId}`;
+                
+                let deviceClass = 'active-pc';
+                let iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+
+                if (node.isRouter) {
+                    deviceClass = 'active-router';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v20M2 12h20M6 6l12 12M18 6L6 18"></path></svg>`;
+                } else if (node.isSwitch) {
+                    deviceClass = 'active-switch';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M7 12h10M12 7v10M9 9l6 6M15 9l-6 6"></path></svg>`;
+                } else if (node.isCloud) {
+                    deviceClass = 'active-switch';
+                    iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>`;
+                } else if (node.isServer) {
+                    deviceClass = 'active-router';
+                    iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>`;
+                }
+
+                nodeDiv.className = `dev-node-el ${deviceClass}`;
+                nodeDiv.style.left = `${node.x}px`;
+                nodeDiv.style.top = `${node.y}px`;
+
+                let subTextHtml = '';
+                if (node.isRouter) {
+                    subTextHtml = `<div class="dev-node-ip" style="font-size:9.5px; line-height:1.2; text-align:center;">G0/0 LAN: ${node.ipLan}<br>G0/1 WAN: ${node.ipWan}</div>`;
+                } else if (node.ip) {
+                    subTextHtml = `<div class="dev-node-ip" style="font-size:10px; text-align:center;">IP: ${node.ip}</div>`;
+                }
+
+                nodeDiv.innerHTML = `
+                    <div class="dev-icon-box">
+                        ${iconSvg}
+                    </div>
+                    <div class="dev-node-label" style="font-weight:700;">${node.label}</div>
+                    ${subTextHtml}
+                `;
+                nodesWrapper.appendChild(nodeDiv);
+            });
+        }
+
+        function resetNatLabSimulation() {
+            natTranslationTable = [];
+            const consoleEl = document.getElementById('nat-console');
+            if (consoleEl) {
+                consoleEl.innerHTML = `Hệ thống sẵn sàng. Chọn máy gửi, máy nhận và nhấn "Gửi Gói Tin qua NAT".`;
+            }
+            updateNatTableUI();
+            drawNatLab();
+        }
+
+        function clearNatLabMemory() {
+            natTranslationTable = [];
+            updateNatTableUI();
+            const consoleEl = document.getElementById('nat-console');
+            if (consoleEl) {
+                consoleEl.innerHTML = `Đã xóa sạch bộ nhớ bảng NAT Translation Table của Router.`;
+            }
+            document.querySelectorAll('#nat-nodes-wrapper .dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver');
+            });
+        }
+
+        function updateNatTableUI() {
+            const tbody = document.getElementById('nat-table-tbody');
+            if (!tbody) return;
+            
+            if (natTranslationTable.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 11px;">Bảng NAT trống. Hãy truyền gói tin.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = natTranslationTable.map(row => {
+                return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 6px; font-family:monospace; color:var(--primary); font-size:11px;">${row.localIp}:${row.localPort}</td>
+                    <td style="padding: 6px; font-family:monospace; color:var(--accent); font-weight:700; font-size:11px;">112.78.2.1:${row.globalPort}</td>
+                    <td style="padding: 6px; font-family:monospace; color:var(--success); font-size:11px;">${row.destIp}:${row.destPort}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function animateNatPacketWithTooltip(startX, startY, endX, endY, labelText, speedMs = 600) {
+            const dot = document.getElementById('nat-packet-dot');
+            const tooltip = document.getElementById('nat-packet-label');
+            if (!dot || !tooltip) return;
+
+            dot.style.display = 'block';
+            tooltip.style.display = 'block';
+            tooltip.textContent = labelText;
+
+            dot.style.left = `${startX}px`;
+            dot.style.top = `${startY}px`;
+            tooltip.style.left = `${startX + 7}px`;
+            tooltip.style.top = `${startY}px`;
+
+            void dot.offsetWidth;
+
+            dot.style.transition = `all ${speedMs}ms linear`;
+            tooltip.style.transition = `all ${speedMs}ms linear`;
+
+            dot.style.left = `${endX}px`;
+            dot.style.top = `${endY}px`;
+            tooltip.style.left = `${endX + 7}px`;
+            tooltip.style.top = `${endY}px`;
+
+            await sleep(speedMs + 50);
+            
+            dot.style.display = 'none';
+            tooltip.style.display = 'none';
+        }
+
+        async function runNatLabSimulation() {
+            const start = document.getElementById('nat-sender').value;
+            const end = document.getElementById('nat-receiver').value;
+            const consoleEl = document.getElementById('nat-console');
+            if (!consoleEl) return;
+
+            document.querySelectorAll('#nat-nodes-wrapper .dev-node-el').forEach(el => {
+                el.classList.remove('highlight-sender', 'highlight-receiver');
+            });
+
+            document.getElementById(`nat-node-${start}`).classList.add('highlight-sender');
+            document.getElementById(`nat-node-${end}`).classList.add('highlight-receiver');
+
+            const coords = natCoordinates;
+            const startNode = coords[start];
+            const endNode = coords[end];
+
+            // Source client port is random (e.g. 52000)
+            const localPort = Math.floor(Math.random() * 10000) + 50000;
+            const destPort = 80; // HTTP web server
+
+            consoleEl.innerHTML = `🏁 [Gửi] PC ${start} (${startNode.ip}) gửi gói tin tới Server ${endNode.label} (${endNode.ip}).<br>➔ Tra địa chỉ đích khác mạng, gửi tới Gateway G0/0 (192.168.1.1)...`;
+            await sleep(2000);
+
+            // Step 1: Client to Switch
+            let cabClientSw = document.getElementById(`nat-cable-${start}-SW`);
+            if (cabClientSw) cabClientSw.classList.add('active');
+            await animateNatPacketWithTooltip(startNode.x, startNode.y, coords.SW.x, coords.SW.y, `Src: ${startNode.ip}:${localPort} ➔ Dst: ${endNode.ip}:${destPort}`, 600);
+            if (cabClientSw) cabClientSw.classList.remove('active');
+
+            // Step 2: Switch to Router (Gateway Inside)
+            let cabSwRt = document.getElementById(`nat-cable-SW-RT`);
+            if (cabSwRt) cabSwRt.classList.add('active');
+            await animateNatPacketWithTooltip(coords.SW.x, coords.SW.y, coords.RT.x, coords.RT.y, `Src: ${startNode.ip}:${localPort} ➔ Dst: ${endNode.ip}:${destPort}`, 600);
+            if (cabSwRt) cabSwRt.classList.remove('active');
+
+            // Router processes NAT translation
+            let mapping = natTranslationTable.find(row => row.localIp === startNode.ip && row.localPort === localPort && row.destIp === endNode.ip);
+            if (!mapping) {
+                const globalPort = Math.floor(Math.random() * 5000) + 10000; // 10000 - 15000 public port
+                mapping = {
+                    localIp: startNode.ip,
+                    localPort: localPort,
+                    globalPort: globalPort,
+                    destIp: endNode.ip,
+                    destPort: destPort
+                };
+                natTranslationTable.push(mapping);
+                updateNatTableUI();
+            }
+
+            consoleEl.innerHTML += `<br>➔ Router R1 nhận gói tin trên G0/0. Tra bảng định tuyến thấy đích đến qua WAN G0/1.<br>➔ **Cơ chế NAT**: Dịch Src Private <strong>${startNode.ip}:${localPort}</strong> sang Public WAN <strong>112.78.2.1:${mapping.globalPort}</strong>. Ghi nhận vào NAT Table...`;
+            await sleep(3500);
+
+            // Step 3: Router to ISP Cloud (WAN Public)
+            let cabRtIsp = document.getElementById(`nat-cable-RT-ISP`);
+            if (cabRtIsp) cabRtIsp.classList.add('active');
+            await animateNatPacketWithTooltip(coords.RT.x, coords.RT.y, coords.ISP.x, coords.ISP.y, `Src: 112.78.2.1:${mapping.globalPort} ➔ Dst: ${endNode.ip}:${destPort}`, 700);
+            if (cabRtIsp) cabRtIsp.classList.remove('active');
+
+            consoleEl.innerHTML += `<br>➔ ISP Cloud định tuyến gói tin qua đường truyền Internet công cộng tới Server...`;
+            await sleep(1500);
+
+            // Step 4: ISP to Server
+            let cabIspServer = document.getElementById(`nat-cable-ISP-${end}`);
+            if (cabIspServer) cabIspServer.classList.add('active');
+            await animateNatPacketWithTooltip(coords.ISP.x, coords.ISP.y, endNode.x, endNode.y, `Src: 112.78.2.1:${mapping.globalPort} ➔ Dst: ${endNode.ip}:${destPort}`, 700);
+            if (cabIspServer) cabIspServer.classList.remove('active');
+
+            consoleEl.innerHTML += `<br>➔ Server <strong>${endNode.label}</strong> nhận gói tin, xử lý và phản hồi ngược lại Public WAN IP <strong>112.78.2.1:${mapping.globalPort}</strong>...`;
+            await sleep(2500);
+
+            // Step 5: Server back to ISP
+            if (cabIspServer) cabIspServer.classList.add('active');
+            await animateNatPacketWithTooltip(endNode.x, endNode.y, coords.ISP.x, coords.ISP.y, `Src: ${endNode.ip}:${destPort} ➔ Dst: 112.78.2.1:${mapping.globalPort}`, 700);
+            if (cabIspServer) cabIspServer.classList.remove('active');
+
+            // Step 6: ISP back to Router (WAN interface)
+            if (cabRtIsp) cabRtIsp.classList.add('active');
+            await animateNatPacketWithTooltip(coords.ISP.x, coords.ISP.y, coords.RT.x, coords.RT.y, `Src: ${endNode.ip}:${destPort} ➔ Dst: 112.78.2.1:${mapping.globalPort}`, 700);
+            if (cabRtIsp) cabRtIsp.classList.remove('active');
+
+            consoleEl.innerHTML += `<br>➔ Router R1 nhận phản hồi. Tra NAT Table cho Port <strong>${mapping.globalPort}</strong> ➔ Tìm thấy ánh xạ Private <strong>${startNode.ip}:${localPort}</strong>.<br>➔ **Dịch ngược NAT**: Đổi Dst Public thành Private IP và đẩy ngược vào LAN G0/0...`;
+            await sleep(3500);
+
+            // Step 7: Router G0/0 back to Switch
+            if (cabSwRt) cabSwRt.classList.add('active');
+            await animateNatPacketWithTooltip(coords.RT.x, coords.RT.y, coords.SW.x, coords.SW.y, `Src: ${endNode.ip}:${destPort} ➔ Dst: ${startNode.ip}:${localPort}`, 600);
+            if (cabSwRt) cabSwRt.classList.remove('active');
+
+            // Step 8: Switch back to Client
+            if (cabClientSw) cabClientSw.classList.add('active');
+            await animateNatPacketWithTooltip(coords.SW.x, coords.SW.y, startNode.x, startNode.y, `Src: ${endNode.ip}:${destPort} ➔ Dst: ${startNode.ip}:${localPort}`, 600);
+            if (cabClientSw) cabClientSw.classList.remove('active');
+
+            consoleEl.innerHTML += `<br><span style="color:var(--success); font-weight:700;">✔️ Hoàn thành!</span> PC ${start} nhận phản hồi từ Server. Địa chỉ IP LAN được Router bảo vệ an toàn.`;
+        }
+
+        // ================= TAB 12: PORT SCANNER & FIREWALL LAB =================
+        let portScanResults = [];
+        const portCoordinates = {
+            scanner: { x: 120, y: 300, label: "PC Scanner", ip: "192.168.1.100", isPC: true },
+            GW: { x: 560, y: 300, label: "Gateway Router", ip: "192.168.1.1", isRouter: true },
+            SV: { x: 560, y: 300, label: "Google Server", ip: "8.8.8.8", isServer: true }
+        };
+
+        const targetPortsConfig = {
+            GW: {
+                22: { status: 'open', service: 'SSH' },
+                25: { status: 'closed', service: 'SMTP' },
+                53: { status: 'open', service: 'DNS' },
+                80: { status: 'open', service: 'HTTP' },
+                443: { status: 'open', service: 'HTTPS' },
+                3306: { status: 'closed', service: 'MySQL' }
+            },
+            SV: {
+                22: { status: 'closed', service: 'SSH' },
+                25: { status: 'closed', service: 'SMTP' },
+                53: { status: 'open', service: 'DNS' },
+                80: { status: 'open', service: 'HTTP' },
+                443: { status: 'open', service: 'HTTPS' },
+                3306: { status: 'closed', service: 'MySQL' }
+            }
+        };
+
+        function drawPortLab() {
+            const wrapper = document.getElementById('port-nodes-wrapper');
+            const targetType = document.getElementById('port-target').value;
+            if (!wrapper) return;
+
+            wrapper.innerHTML = '';
+
+            // Draw Scanner
+            const scannerNode = portCoordinates.scanner;
+            const scannerDiv = document.createElement('div');
+            scannerDiv.className = 'dev-node-el active-pc';
+            scannerDiv.style.left = `${scannerNode.x}px`;
+            scannerDiv.style.top = `${scannerNode.y}px`;
+            scannerDiv.innerHTML = `
+                <div class="dev-icon-box">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                </div>
+                <div class="dev-node-label" style="font-weight:700;">${scannerNode.label}</div>
+                <div class="dev-node-ip" style="font-size:10px;">IP: ${scannerNode.ip}</div>
+            `;
+            wrapper.appendChild(scannerDiv);
+
+            // Draw Target
+            const targetNode = portCoordinates[targetType];
+            const targetDiv = document.createElement('div');
+            let deviceClass = 'active-router';
+            let iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v20M2 12h20M6 6l12 12M18 6L6 18"></path></svg>`;
+
+            if (targetNode.isServer) {
+                deviceClass = 'active-router';
+                iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>`;
+            }
+
+            targetDiv.className = `dev-node-el ${deviceClass}`;
+            targetDiv.style.left = `${targetNode.x}px`;
+            targetDiv.style.top = `${targetNode.y}px`;
+            targetDiv.innerHTML = `
+                <div class="dev-icon-box">
+                    ${iconSvg}
+                </div>
+                <div class="dev-node-label" style="font-weight:700;">${targetNode.label}</div>
+                <div class="dev-node-ip" style="font-size:10px;">IP: ${targetNode.ip}</div>
+            `;
+            wrapper.appendChild(targetDiv);
+        }
+
+        function resetPortLab() {
+            portScanResults = [];
+            const consoleEl = document.getElementById('port-console');
+            if (consoleEl) {
+                consoleEl.innerHTML = `Hệ thống sẵn sàng. Chọn mục tiêu, cấu hình tường lửa và nhấn Quét Cổng.`;
+            }
+            // Reset check boxes
+            const check22 = document.getElementById('fw-block-22');
+            const check25 = document.getElementById('fw-block-25');
+            const check80 = document.getElementById('fw-block-80');
+            const check3306 = document.getElementById('fw-block-3306');
+            if (check22) check22.checked = false;
+            if (check25) check25.checked = false;
+            if (check80) check80.checked = false;
+            if (check3306) check3306.checked = false;
+
+            updatePortResultsUI();
+            drawPortLab();
+
+            // Link event listener for select
+            const selectEl = document.getElementById('port-target');
+            if (selectEl) {
+                selectEl.onchange = () => {
+                    resetPortLab();
+                };
+            }
+        }
+
+        function updatePortResultsUI() {
+            const tbody = document.getElementById('port-results-tbody');
+            if (!tbody) return;
+
+            if (portScanResults.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size:11px;">Chưa thực hiện quét. Bấm "Quét Cổng Mục Tiêu".</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = portScanResults.map(row => {
+                let badgeClass = 'status-closed';
+                if (row.status === 'OPEN') badgeClass = 'status-open';
+                else if (row.status === 'FILTERED') badgeClass = 'status-filtered';
+
+                return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 6px; font-family:monospace; font-weight:700; font-size:11px;">${row.port}</td>
+                    <td style="padding: 6px; font-size:11px; color:var(--text-muted);">${row.service}</td>
+                    <td style="padding: 6px; font-size:11px;"><span class="status-badge ${badgeClass}">${row.status}</span></td>
+                    <td style="padding: 6px; font-family:monospace; font-size:11px; color:#a3b8cc;">${row.response}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function animatePortPacket(port, status, speedMs = 600) {
+            const dot = document.getElementById('port-packet-dot');
+            const tooltip = document.getElementById('port-packet-label');
+            if (!dot || !tooltip) return;
+
+            const startX = 120;
+            const endX = 560;
+            const y = 300;
+
+            // 1. Forward Scan (SYN Request)
+            dot.style.display = 'block';
+            tooltip.style.display = 'block';
+            tooltip.textContent = `SYN (Port: ${port})`;
+            dot.style.background = 'var(--accent)';
+            dot.style.boxShadow = '0 0 15px var(--accent)';
+            tooltip.style.border = '1px solid var(--accent)';
+
+            dot.style.left = `${startX}px`;
+            dot.style.top = `${y}px`;
+            tooltip.style.left = `${startX + 7}px`;
+            tooltip.style.top = `${y}px`;
+
+            void dot.offsetWidth;
+
+            dot.style.transition = `all ${speedMs}ms linear`;
+            tooltip.style.transition = `all ${speedMs}ms linear`;
+
+            // If Filtered, packet vanishes halfway
+            const targetX = (status === 'FILTERED') ? (startX + endX) / 2 : endX;
+            
+            dot.style.left = `${targetX}px`;
+            tooltip.style.left = `${targetX + 7}px`;
+
+            await sleep(speedMs + 50);
+
+            if (status === 'FILTERED') {
+                dot.style.transition = 'opacity 0.2s ease';
+                tooltip.style.transition = 'opacity 0.2s ease';
+                dot.style.opacity = '0';
+                tooltip.style.opacity = '0';
+                await sleep(250);
+                dot.style.opacity = '1';
+                tooltip.style.opacity = '1';
+                dot.style.display = 'none';
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            // 2. Backward Scan (Response)
+            dot.style.display = 'block';
+            tooltip.style.display = 'block';
+            
+            if (status === 'OPEN') {
+                tooltip.textContent = `SYN-ACK`;
+                dot.style.background = 'var(--success)';
+                dot.style.boxShadow = '0 0 15px var(--success)';
+                tooltip.style.border = '1px solid var(--success)';
+            } else {
+                tooltip.textContent = `RST`;
+                dot.style.background = 'var(--error)';
+                dot.style.boxShadow = '0 0 15px var(--error)';
+                tooltip.style.border = '1px solid var(--error)';
+            }
+
+            dot.style.left = `${endX}px`;
+            tooltip.style.left = `${endX + 7}px`;
+
+            void dot.offsetWidth;
+
+            dot.style.transition = `all ${speedMs}ms linear`;
+            tooltip.style.transition = `all ${speedMs}ms linear`;
+
+            dot.style.left = `${startX}px`;
+            tooltip.style.left = `${startX + 7}px`;
+
+            await sleep(speedMs + 50);
+
+            dot.style.display = 'none';
+            tooltip.style.display = 'none';
+        }
+
+        async function runPortScanSimulation() {
+            const btn = document.getElementById('btn-port-scan');
+            if (btn) btn.disabled = true;
+
+            const targetType = document.getElementById('port-target').value;
+            const consoleEl = document.getElementById('port-console');
+            if (!consoleEl) return;
+
+            portScanResults = [];
+            updatePortResultsUI();
+
+            const targetNode = portCoordinates[targetType];
+            const portsToScan = [22, 25, 53, 80, 443, 3306];
+
+            consoleEl.innerHTML = `🚀 Khởi động trình quét cổng mạng... Địa chỉ IP mục tiêu: <strong>${targetNode.ip}</strong> (${targetNode.label}).`;
+            await sleep(1500);
+
+            // Fetch Firewall rules
+            const blockFw = {
+                22: document.getElementById('fw-block-22') ? document.getElementById('fw-block-22').checked : false,
+                25: document.getElementById('fw-block-25') ? document.getElementById('fw-block-25').checked : false,
+                80: document.getElementById('fw-block-80') ? document.getElementById('fw-block-80').checked : false,
+                3306: document.getElementById('fw-block-3306') ? document.getElementById('fw-block-3306').checked : false
+            };
+
+            for (let i = 0; i < portsToScan.length; i++) {
+                const port = portsToScan[i];
+                const portConfig = targetPortsConfig[targetType][port];
+                
+                consoleEl.innerHTML += `<br>🔍 Quét cổng <strong>${port} (${portConfig.service})</strong>...`;
+                await sleep(500);
+
+                let finalStatus = portConfig.status.toUpperCase();
+                let responseText = (finalStatus === 'OPEN') ? 'SYN-ACK' : 'RST';
+
+                // Check Firewall rules (If blocked, status is Filtered)
+                if (blockFw[port]) {
+                    finalStatus = 'FILTERED';
+                    responseText = 'No Response (Timeout)';
+                }
+
+                // Cable highlight
+                const cable = document.getElementById('port-cable-0');
+                if (cable) cable.classList.add('active');
+
+                await animatePortPacket(port, finalStatus, 500);
+
+                if (cable) cable.classList.remove('active');
+
+                if (finalStatus === 'FILTERED') {
+                    consoleEl.innerHTML += ` ❌ <span style="color:var(--warning);">FILTERED!</span> Gói tin TCP SYN bị chặn bởi Firewall. Cổng bị cô lập.`;
+                } else if (finalStatus === 'OPEN') {
+                    consoleEl.innerHTML += ` ✔️ <span style="color:var(--success);">OPEN!</span> Nhận gói SYN-ACK phản hồi. Cổng đang hoạt động.`;
+                } else {
+                    consoleEl.innerHTML += ` ✖️ <span style="color:var(--error);">CLOSED!</span> Nhận gói RST phản hồi. Không có dịch vụ lắng nghe.`;
+                }
+
+                portScanResults.push({
+                    port: port,
+                    service: portConfig.service,
+                    status: finalStatus,
+                    response: responseText
+                });
+                updatePortResultsUI();
+                await sleep(1200);
+            }
+
+            consoleEl.innerHTML += `<br><span style="color:var(--primary); font-weight:700;">🏁 Hoàn tất quét!</span> Đã phát hiện trạng thái tất cả các cổng trên thiết bị đích.`;
+            if (btn) btn.disabled = false;
         }
 
         function sleep(ms) {

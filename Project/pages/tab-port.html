@@ -1,0 +1,180 @@
+<style>
+    .port-packet-tooltip {
+        position: absolute;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid var(--accent);
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #fff;
+        pointer-events: none;
+        z-index: 100;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        white-space: nowrap;
+        transform: translate(-50%, -100%);
+        margin-top: -12px;
+        display: none;
+        transition: all 0.1s ease;
+    }
+    .port-packet-tooltip::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 50%;
+        margin-left: -4px;
+        border-width: 4px 4px 0;
+        border-style: solid;
+        border-color: rgba(15, 23, 42, 0.95) transparent transparent;
+        display: block;
+        width: 0;
+    }
+    .fw-checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .fw-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        cursor: pointer;
+    }
+    .fw-checkbox-item input {
+        cursor: pointer;
+    }
+    .status-badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10.5px;
+        font-weight: 700;
+    }
+    .status-open {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+        border: 1px solid var(--success);
+    }
+    .status-closed {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--error);
+        border: 1px solid var(--error);
+    }
+    .status-filtered {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        border: 1px solid var(--warning);
+    }
+</style>
+
+<p class="section-desc">Phòng thí nghiệm Quét Cổng & Firewall: Quan sát cách gói tin cờ hiệu (SYN, SYN-ACK, RST) phản hồi để phát hiện các cổng mạng đang Mở (Open) hay Đóng (Closed), và cách cấu hình luật Firewall để Lọc/Chặn (Filtered) các gói tin quét trái phép.</p>
+
+<div class="playground-layout" style="grid-template-columns: 360px 1fr; gap: 28px; display: grid;">
+    <!-- Left Column: Controls & Rules -->
+    <div class="pg-control-panel" style="gap: 16px; display: flex; flex-direction: column;">
+        <!-- Firewall Card -->
+        <div class="pg-panel">
+            <div class="panel-heading" style="color:var(--error);">
+                🛡️ Cấu Hình Luật Firewall (Lọc Cổng)
+            </div>
+            <p style="font-size:12px; color:var(--text-muted);">
+                Tích chọn để kích hoạt chặn gói tin đi vào cổng tương ứng trên Thiết bị mục tiêu:
+            </p>
+            <div class="fw-checkbox-group">
+                <label class="fw-checkbox-item">
+                    <input type="checkbox" id="fw-block-22">
+                    <span>Block Port 22 (SSH)</span>
+                </label>
+                <label class="fw-checkbox-item">
+                    <input type="checkbox" id="fw-block-25">
+                    <span>Block Port 25 (SMTP Email)</span>
+                </label>
+                <label class="fw-checkbox-item">
+                    <input type="checkbox" id="fw-block-80">
+                    <span>Block Port 80 (HTTP Web)</span>
+                </label>
+                <label class="fw-checkbox-item">
+                    <input type="checkbox" id="fw-block-3306">
+                    <span>Block Port 3306 (MySQL Database)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Scanner Card -->
+        <div class="pg-panel">
+            <div class="panel-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Trình Quét Cổng Mạng (Port Scanner)
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 12px;">
+                <label>Thiết bị mục tiêu cần quét</label>
+                <select id="port-target" class="input-control" style="background:#1f2937; color:#fff; border:1px solid rgba(255,255,255,0.1); width:100%; border-radius:6px; padding:8px; font-size:12.5px;">
+                    <option value="GW">Gateway Router (192.168.1.1)</option>
+                    <option value="SV">Google DNS Server (8.8.8.8)</option>
+                </select>
+            </div>
+            
+            <div class="row-btn" style="margin-top: 15px;">
+                <button class="btn" id="btn-port-scan" onclick="runPortScanSimulation()" style="flex:1; font-weight:700;">Quét Cổng Mục Tiêu</button>
+                <button class="btn btn-outline" onclick="resetPortLab()" style="padding: 10px 14px;">Reset</button>
+            </div>
+        </div>
+
+        <!-- Scan Results Table -->
+        <div class="pg-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 180px; max-height: 220px; overflow: hidden;">
+            <div class="panel-heading" style="color:var(--success); font-size: 13px; margin-bottom: 8px;">
+                📋 Kết Quả Quét Cổng (Scan Results)
+            </div>
+            <div class="scan-table-container" style="flex: 1; overflow-y: auto;">
+                <table class="scan-table" style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05); text-align: left; position: sticky; top:0; background:#1b202e; z-index: 5;">
+                            <th style="padding: 4px;">Cổng (Port)</th>
+                            <th style="padding: 4px;">Dịch vụ</th>
+                            <th style="padding: 4px;">Trạng thái</th>
+                            <th style="padding: 4px;">Phản hồi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="port-results-tbody">
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px 0;">Chưa thực hiện quét. Bấm "Quét Cổng Mục Tiêu".</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Log Console -->
+        <div class="pg-panel" style="display: flex; flex-direction: column;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight:700;">Nhật ký quá trình (Scan Console):</div>
+            <div id="port-console" style="background:#090d16; border-radius: 6px; font-family:'JetBrains Mono',monospace; font-size:11px; padding: 10px; color:#a3b8cc; height:120px; overflow-y:auto; line-height:1.45; border:1px solid rgba(255,255,255,0.03);">Hệ thống sẵn sàng. Chọn mục tiêu, cấu hình tường lửa và nhấn Quét Cổng.</div>
+        </div>
+    </div>
+
+    <!-- Right Column: Canvas Layout -->
+    <div class="card" style="position: relative; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; background: #0b111e; border: 1px solid rgba(255,255,255,0.03);">
+        <div style="position: absolute; top: 16px; left: 16px; font-size: 12.5px; color: var(--text-muted); z-index: 10;">
+            💡 <em>Mô tả đường truyền: Trình quét gửi gói tin TCP SYN. Cổng Mở trả về SYN-ACK, Cổng Đóng trả về RST, Cổng bị chặn bởi Firewall sẽ Timeout.</em>
+        </div>
+
+        <!-- SVG line canvas -->
+        <svg id="port-svg-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;">
+            <line x1="120" y1="300" x2="560" y2="300" class="dev-cable" id="port-cable-0" stroke="rgba(255,255,255,0.05)" stroke-width="4"></line>
+        </svg>
+
+        <!-- Floating label showing packet flags -->
+        <div class="port-packet-tooltip" id="port-packet-label">
+            SYN
+        </div>
+
+        <!-- Animated packet dot -->
+        <div class="dev-packet-dot" id="port-packet-dot" style="display: none; position: absolute; width: 14px; height: 14px; background: var(--accent); border-radius: 50%; z-index: 10; box-shadow: 0 0 15px var(--accent); transition: all 0.5s linear;"></div>
+
+        <!-- Node Wrapper -->
+        <div id="port-nodes-wrapper" style="position: absolute; width: 100%; height: 100%; z-index: 5; pointer-events: none;">
+            <!-- Nodes drawn here -->
+        </div>
+    </div>
+</div>
